@@ -62,6 +62,14 @@ export default class KeeData {
     this.#path = '';
   }
 
+  getCustomIcon(iconId: string): string {
+    const buffer = this.database.meta.customIcons.get(iconId)?.data;
+    if (buffer) {
+      return 'data:image;base64,' + btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    }
+    return '';
+  }
+
   // return ID of special folder for trash
   //
   get recycleBinUuid(){ return this.database.meta.recycleBinUuid }

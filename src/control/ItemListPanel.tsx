@@ -89,6 +89,12 @@ const styles = (theme: Theme) =>  createStyles({
     width:50, height:50, margin:16, display:'flex'
   },
 
+  mainIconContent: {
+    marginLeft: 'auto',
+    width: 28,
+    height: 28,
+  },
+
   flexAlignRight: {
     marginLeft: 'auto'
   },
@@ -171,74 +177,80 @@ class ItemListPanel extends React.Component<Props> {
 
   render(){
     const { classes } = this.props;
-
-        return (
-        <div className = {classes.list}>
-          {this.state.entries?.map((entry) =>
-            <LightTooltip
-              key = {entry.uuid.id}
-              title = {
-                entry.fields.get('Notes')
-                  ? <React.Fragment> {entry.fields.get('Notes')} </React.Fragment>
-                  : ""
+    return (
+      <div className = {classes.list}>
+        {this.state.entries?.map((entry) =>
+          <LightTooltip
+            key = {entry.uuid.id}
+            title = {
+              entry.fields.get('Notes')
+                ? <React.Fragment> {entry.fields.get('Notes')} </React.Fragment>
+                : ""
+            }
+          >
+            <div
+              onClick = {() => this.handleClick(entry)}
+              className = {
+                clsx(classes.listItem, (this.state.selectedEntryId === entry.uuid.id) && classes.listItemSelected)
               }
             >
-              <div
-                onClick = {() => this.handleClick(entry)}
-                className = {
-                  clsx(classes.listItem, (this.state.selectedEntryId === entry.uuid.id) && classes.listItemSelected)
+              <div className = {classes.mainIconDiv}>
+                {entry.customIcon && !entry.customIcon.empty
+                  ? <img
+                      className = {classes.mainIconContent}
+                      src={(this.context as KeeData).getCustomIcon(entry.customIcon.id)}>
+                    </img>
+                  : <SvgPath className = {classes.mainIconContent} path = {DefaultKeeIcon.get(entry.icon ?? 0)} />
                 }
-              >
-                <div className = {classes.mainIconDiv}>
-                  <SvgPath className = {classes.flexAlignRight} path = {DefaultKeeIcon.get(entry.icon ?? 0)} />
-                </div>
-                <div className = {classes.itemContent}>
-                  <div className = {classes.itemContentRow}>
-                    <div className={classes.title}>
-                      {entry.fields.get('Title') === '' ? "(No Title)" : entry.fields.get('Title')}
-                    </div>
-                    {entry.times.expires &&
-                      <div className={clsx(classes.titleSecondary, classes.flexAlignRight)}>
-                        <SvgPath className={classes.inlineLeftIcon} path = {SystemIcon.expire} />
-                        {entry.times.expiryTime?.toDateString()}
-                      </div>
-                    }
-                  </div>
-                  <div className = {classes.itemContentRow}>
-                    <div className={classes.titleSecondary}>
-                      { entry.fields.get('UserName') !== '' &&
-                        <>
-                          <SvgPath className={classes.inlineLeftIcon} path = {SystemIcon.user} />
-                          {entry.fields.get('UserName')}
-                        </>
-                      }
-                    </div>
 
-                  </div>
-                  <div className={classes.titleSecondary}>
-                    { entry.fields.get('URL') !== '' &&
-                      <>
-                        <SvgPath className={classes.inlineLeftIcon} path = {DefaultKeeIcon.link}/>
-                        {entry.fields.get('URL')}
-                      </>
-                    }
-                  </div>
-                  <div className={clsx(classes.titleSecondary, classes.itemContentLastRow)} >
-                    { entry.tags.length > 0 &&
-                      <>
-                        <SvgPath className={classes.inlineLeftIcon} path = {SystemIcon.tag} />
-                        {entry.tags.join(', ')}
-                      </>
-                    }
-                  </div>
-                </div>
-                <div className = {classes.itemAttachIcon}>
-                  { entry.binaries.size > 0 && <SvgPath path = {SystemIcon.attachFile} /> }
-                </div>
-                <div style={{width:'8px', backgroundColor: entry.bgColor}}/>
               </div>
-            </LightTooltip>
-          )}
+              <div className = {classes.itemContent}>
+                <div className = {classes.itemContentRow}>
+                  <div className={classes.title}>
+                    {entry.fields.get('Title') === '' ? "(No Title)" : entry.fields.get('Title')}
+                  </div>
+                  {entry.times.expires &&
+                    <div className={clsx(classes.titleSecondary, classes.flexAlignRight)}>
+                      <SvgPath className={classes.inlineLeftIcon} path = {SystemIcon.expire} />
+                      {entry.times.expiryTime?.toDateString()}
+                    </div>
+                  }
+                </div>
+                <div className = {classes.itemContentRow}>
+                  <div className={classes.titleSecondary}>
+                    { entry.fields.get('UserName') !== '' &&
+                      <>
+                        <SvgPath className={classes.inlineLeftIcon} path = {SystemIcon.user} />
+                        {entry.fields.get('UserName')}
+                      </>
+                    }
+                  </div>
+
+                </div>
+                <div className={classes.titleSecondary}>
+                  { entry.fields.get('URL') !== '' &&
+                    <>
+                      <SvgPath className={classes.inlineLeftIcon} path = {DefaultKeeIcon.link}/>
+                      {entry.fields.get('URL')}
+                    </>
+                  }
+                </div>
+                <div className={clsx(classes.titleSecondary, classes.itemContentLastRow)} >
+                  { entry.tags.length > 0 &&
+                    <>
+                      <SvgPath className={classes.inlineLeftIcon} path = {SystemIcon.tag} />
+                      {entry.tags.join(', ')}
+                    </>
+                  }
+                </div>
+              </div>
+              <div className = {classes.itemAttachIcon}>
+                { entry.binaries.size > 0 && <SvgPath path = {SystemIcon.attachFile} /> }
+              </div>
+              <div style={{width:'8px', backgroundColor: entry.bgColor}}/>
+            </div>
+          </LightTooltip>
+        )}
       </div>
     )
   }

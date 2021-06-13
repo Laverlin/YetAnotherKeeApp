@@ -241,9 +241,14 @@ class ItemDetailPanel extends Component<Props> {
 
     return (
       <form noValidate autoComplete="off" >
-
         <div className = {classes.itemTitle}>
-          <SvgPath className={classes.titleIcon} path  = {DefaultKeeIcon.get(this.state.entry?.icon ?? 0)} />
+          {this.state.entry?.customIcon && !this.state.entry.customIcon.empty
+            ? <img
+                className={classes.titleIcon}
+                src={(this.context as KeeData).getCustomIcon(this.state.entry.customIcon.id)}>
+              </img>
+            : <SvgPath className = {classes.titleIcon} path = {DefaultKeeIcon.get(this.state.entry?.icon ?? 0)} />
+          }
           <Input id = "title"
             value = {this.state.title}
             fullWidth
