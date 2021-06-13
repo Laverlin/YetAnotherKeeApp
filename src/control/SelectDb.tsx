@@ -65,6 +65,7 @@ class SelectDb extends React.Component<Props> {
   handleChange = (event: any) => {
     this.setState({[event.target.id]: event.target.value})
   }
+
   handleShowPassword = () => this.setState({isShowPassword: !this.state.isShowPassword});
 
   handleOpenFile = () => {
@@ -74,7 +75,13 @@ class SelectDb extends React.Component<Props> {
       error: '',
       password: ''
     });
+  }
 
+  handleKeyPress = (event: React.KeyboardEvent<HTMLFormElement>) => {
+    if (event.key === 'Enter') {
+      this.handleEnterPassword();
+      event.preventDefault();
+    }
   }
 
   handleEnterPassword = async () => {
@@ -97,65 +104,65 @@ class SelectDb extends React.Component<Props> {
   }
 
 
-    render() {
-      const { classes }  = this.props;
-      return(
-        <>
-          <form
-            autoComplete="off"
-            className = {classes.form}
-            onKeyPress = {e => e.key === 'Enter' && this.handleEnterPassword()}
-          >
-            <div className = {classes.content}>
-              <div>
-                <IconButton onClick = {this.handleOpenFile}>
-                  <SvgPath className = {classes.icon60} path = {DefaultKeeIcon["folder-o"]} />
-                </IconButton>
-              </div>
-
-              <div className = {classes.inputRow}>
-                <TextField
-                  id = "password"
-                  fullWidth
-                  disabled = {!this.state.selectedFile}
-                  label = {this.state.selectedFile && "Password for " + path.parse(this.state.selectedFile).base}
-                  error = {!!this.state.error}
-                  helperText = {this.state.error}
-                  variant = "outlined"
-                  placeholder = {"Password "}
-                  type = {this.state.isShowPassword ? 'text' : 'password'}
-                  value = {this.state.password}
-                  onChange = {this.handleChange}
-                  InputProps = {{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label = "toggle password visibility"
-                          onClick = {this.handleShowPassword}
-                          disabled = {!this.state.selectedFile}
-                        >
-                          {this.state.isShowPassword
-                            ? <SvgPath path = {SystemIcon.visibilityOn} />
-                            : <SvgPath path = {SystemIcon.visibilityOff} />}
-                        </IconButton>
-                      </InputAdornment>
-                    )
-                  }}
-                />
-                <IconButton
-                  className = {classes.enterButton}
-                  onClick = {this.handleEnterPassword}
-                  disabled = {!this.state.selectedFile}
-                >
-                  <SvgPath className = {classes.icon50} path = {SystemIcon.enterKey} />
-                </IconButton>
-              </div>
-              <Typography variant="caption">{this.state.selectedFile}</Typography>
+  render() {
+    const { classes }  = this.props;
+    return(
+      <>
+        <form
+          autoComplete = "off"
+          className = {classes.form}
+          onKeyPress = {e => this.handleKeyPress(e)}
+        >
+          <div className = {classes.content}>
+            <div>
+              <IconButton onClick = {this.handleOpenFile}>
+                <SvgPath className = {classes.icon60} path = {DefaultKeeIcon["folder-o"]} />
+              </IconButton>
             </div>
-          </form>
-        </>
-      );
-    }
+
+            <div className = {classes.inputRow}>
+              <TextField
+                id = "password"
+                fullWidth
+                disabled = {!this.state.selectedFile}
+                label = {this.state.selectedFile && "Password for " + path.parse(this.state.selectedFile).base}
+                error = {!!this.state.error}
+                helperText = {this.state.error}
+                variant = "outlined"
+                placeholder = {"Password "}
+                type = {this.state.isShowPassword ? 'text' : 'password'}
+                value = {this.state.password}
+                onChange = {this.handleChange}
+                InputProps = {{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label = "toggle password visibility"
+                        onClick = {this.handleShowPassword}
+                        disabled = {!this.state.selectedFile}
+                      >
+                        {this.state.isShowPassword
+                          ? <SvgPath path = {SystemIcon.visibilityOn} />
+                          : <SvgPath path = {SystemIcon.visibilityOff} />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+              />
+              <IconButton
+                className = {classes.enterButton}
+                onClick = {this.handleEnterPassword}
+                disabled = {!this.state.selectedFile}
+              >
+                <SvgPath className = {classes.icon50} path = {SystemIcon.enterKey} />
+              </IconButton>
+            </div>
+            <Typography variant="caption">{this.state.selectedFile}</Typography>
+          </div>
+        </form>
+      </>
+    );
+  }
 }
 
 export default withRouter(withStyles(styles, { withTheme: true }) (SelectDb));

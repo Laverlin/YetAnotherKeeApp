@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>  createStyles({
       width: '400px',
       color: theme.palette.getContrastText(theme.palette.primary.dark),
       backgroundColor: theme.palette.primary.main,
-      marginLeft:'auto',
+      marginLeft:'16px',
     },
 
     aboutPaper: {
@@ -116,7 +116,6 @@ class AppToolBar extends React.Component<Props>
   state = {
     isMaximized: electron.remote.getCurrentWindow().isMaximized(),
     isPopOpen: false,
-    dbName: ''
   }
 
   info = {
@@ -132,10 +131,6 @@ class AppToolBar extends React.Component<Props>
   {
     super(props);
     this.handleMaximizeWindow = this.handleMaximizeWindow.bind(this);
-  }
-
-  componentDidMount() {
-    this.setState({dbName: this.state.dbName = (this.context as KeeData).dbName})
   }
 
   handleMaximizeWindow() {
@@ -174,8 +169,8 @@ class AppToolBar extends React.Component<Props>
 
           {(this.props.history.location.pathname != '/') &&
             <>
-              <Typography>...{this.state.dbName}</Typography>
-              <MuiThemeProvider theme={theme}>
+              <Typography style ={{marginLeft:'auto'}}>...{(this.context as KeeData).dbName}</Typography>
+              <MuiThemeProvider theme = {theme}>
                 <OutlinedInput
                   className = {classes.searchInput}
                   placeholder = "Search"
