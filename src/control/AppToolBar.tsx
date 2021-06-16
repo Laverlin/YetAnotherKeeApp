@@ -13,6 +13,7 @@ import { SvgPath } from "./helper/SvgPath";
 import { KeeDataContext } from "../entity/Context";
 import KeeData from "../entity/KeeData";
 
+
 const styles = (theme: Theme) =>  createStyles({
     appBar: {
       WebkitAppRegion:'drag',
@@ -150,6 +151,11 @@ class AppToolBar extends React.Component<Props>
 
   handleBackClick = () => this.props.history.goBack();
 
+  handleSearch(filter: string) {
+    (document.getElementById("search") as HTMLInputElement)!.value = filter;
+    (this.context as KeeData).notifySearchFilterSubscribers(filter);
+  }
+
   render() {
     const { classes }  = this.props;
     return(
@@ -172,9 +178,11 @@ class AppToolBar extends React.Component<Props>
               <Typography style ={{marginLeft:'auto'}}>...{(this.context as KeeData).dbName}</Typography>
               <MuiThemeProvider theme = {theme}>
                 <OutlinedInput
-                  className = {classes.searchInput}
-                  placeholder = "Search"
                   id = "search"
+                  className = {classes.searchInput}
+                  onChange = {event => this.handleSearch(event.target.value)}
+                  onKeyDown = {event => event.key === 'Escape' && this.handleSearch('')}
+                  placeholder = "Search"
                   endAdornment = {
                     <InputAdornment position="end">
                       <SvgPath className = {classes.icon15} path = {SystemIcon.search} />

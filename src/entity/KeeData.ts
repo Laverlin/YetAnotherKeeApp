@@ -10,7 +10,8 @@ export default class KeeData {
   #database: Kdbx | undefined = undefined;
 
   #groupListeners = [] as {(entries: KdbxEntry[]): void} [];
-  #entryListeners = [] as {(entry: KdbxEntry):void} [];
+  #entryListeners = [] as {(entry: KdbxEntry): void} [];
+  #searchFilterListeners = [] as {(query: string): void} [];
 
 
   // Set path to database file
@@ -111,4 +112,17 @@ export default class KeeData {
       this.#entryListeners.forEach(listener => listener(entry));
     }
   }
+
+  addSearchFilterListener(listener: {(query: string): void}) {
+    this.#searchFilterListeners.push(listener);
+  }
+
+  removeSearchFilterListener(listener: {(query: string): void}) {
+    this.#searchFilterListeners = this.#searchFilterListeners.filter(item => listener !== item);
+  }
+
+  notifySearchFilterSubscribers(query:string) {
+    this.#searchFilterListeners.forEach(listener => listener(query));
+  }
+
 }

@@ -1,8 +1,8 @@
 import clsx from "clsx";
 import React from "react";
-import { createStyles, darken, Theme, Tooltip,  withStyles, WithStyles} from "@material-ui/core";
+import { Box, createStyles, darken, Paper, Theme, Tooltip,  Typography,  withStyles, WithStyles} from "@material-ui/core";
 
-import { KdbxEntry} from "kdbxweb";
+import { KdbxEntry, ProtectedValue} from "kdbxweb";
 import { DefaultKeeIcon, SystemIcon } from "../entity/GlobalObject";
 import { KeeDataContext } from "../entity/Context";
 import KeeData from "../entity/KeeData";
@@ -67,6 +67,10 @@ const styles = (theme: Theme) =>  createStyles({
     paddingRight: theme.spacing(1),
   },
 
+  copyCursor: {
+    cursor: 'pointer'
+  },
+
   listItem : {
     position:'relative',
     display:'flex',
@@ -110,7 +114,7 @@ const styles = (theme: Theme) =>  createStyles({
     display:'flex',
     flexDirection:'row',
     minWidth:0,
-    paddingRight:'8px',
+    paddingRight: theme.spacing(1),
   },
 
   itemAttachIcon: {
@@ -124,9 +128,17 @@ const styles = (theme: Theme) =>  createStyles({
   itemContentLastRow: {
     color: '#CCCCCC',
     marginRight: 30
-  }
+  },
 
-
+  notifyBase: {
+    position:'absolute',
+    bottom:0,
+    right:40,
+    opacity: 0,
+    padding: theme.spacing(1),
+    paddingTop: theme.spacing(1/2),
+    paddingBottom: theme.spacing(1/2),
+  },
 });
 
 const LightTooltip = withStyles((theme: Theme) => ({
@@ -146,40 +158,89 @@ class ItemListPanel extends React.Component<Props> {
 
   state = {
     entries: [] as KdbxEntry[] | undefined,
-    selectedEntryId: ""
+    selectedEntryId: '',
+    filterString: '',
+    copiedFileld: '',
   }
 
   constructor(props : Props){
     super(props);
-    this.handleUpdate = this.handleUpdate.bind(this);
+    this.handleGroupUpdate = this.handleGroupUpdate.bind(this);
+    this.handleSearchUpdate = this.handleSearchUpdate.bind(this);
   }
 
   componentDidMount() {
     const keeData = (this.context as KeeData);
-    keeData.addGroupListener(this.handleUpdate);
+    keeData.addGroupListener(this.handleGroupUpdate);
     const entities = keeData.database.getDefaultGroup().entries;
-    this.setState({entries: Array.from(entities) });
+    this.setState({entries: Array.from(entities)});
+    keeData.addSearchFilterListener(this.handleSearchUpdate);
   }
 
   componentWillUnmount() {
     const keeData = (this.context as KeeData);
-    keeData.removeGroupListener(this.handleUpdate);
+    keeData.removeGroupListener(this.handleGroupUpdate);
+    keeData.removeSearchFilterListener(this.handleSearchUpdate);
   }
 
-  handleUpdate(entries: KdbxEntry[]) {
+  handleSearchUpdate(query: string) {
+    this.setState({filterString: query});
+  }
+
+  handleGroupUpdate(entries: KdbxEntry[]) {
     this.setState({entries: entries});
   }
 
-  handleClick(entry: KdbxEntry){
+  handleClick(entry: KdbxEntry) {
     (this.context as KeeData).notifyEntrySubscribers(entry);
     this.setState({selectedEntryId: entry.uuid.id})
   }
 
+  handleDoubleClick(entry: KdbxEntry) {
+    navigator.clipboard.writeText(
+      (entry.fields.get('Password') as ProtectedValue).getText()
+    );
+    this.setState({copiedFileld: 'password'});
+    this.showCopyNotify(entry.uuid.id);
+  }
+
+  showCopyNotify(id: string) {
+    const notify = document.getElementById('notify-' + id);
+    if (notify) {
+      notify.style.opacity = '1';
+      notify.style.transition = 'all 350ms linear';
+    }
+  }
+
+  hideCopyNotify(id: string) {
+    const notify = document.getElementById('notify-' + id);
+    if (notify) {
+      notify.style.opacity = '0';
+      notify.style.transition = 'all 350ms linear 1s';
+    }
+  }
+
+  handleCopy(entry: KdbxEntry, field: string, event: React.MouseEvent<SVGSVGElement, MouseEvent>) {
+    navigator.clipboard.writeText(
+      entry.fields.has(field) ? entry.fields.get(field)!.toString() : '');
+    event.stopPropagation();
+    this.setState({copiedFileld: field});
+    this.showCopyNotify(entry.uuid.id);
+  }
+
+  filter(entry: KdbxEntry, filterString: string): boolean {
+    return entry.fields.get('Title')?.toString().toLowerCase().includes(filterString) ||
+      entry.fields.get('UserName')?.toString().toLowerCase().includes(filterString) ||
+      entry.fields.get('URL')?.toString().toLowerCase().includes(filterString) as boolean
+  }
+
   render(){
     const { classes } = this.props;
+    const { entries, filterString } = this.state;
+
     return (
       <div className = {classes.list}>
-        {this.state.entries?.map((entry) =>
+        {entries?.filter(entry => this.filter(entry, filterString)).map((entry) =>
           <LightTooltip
             key = {entry.uuid.id}
             title = {
@@ -190,6 +251,7 @@ class ItemListPanel extends React.Component<Props> {
           >
             <div
               onClick = {() => this.handleClick(entry)}
+              onDoubleClick = { () => this.handleDoubleClick(entry)}
               className = {
                 clsx(classes.listItem, (this.state.selectedEntryId === entry.uuid.id) && classes.listItemSelected)
               }
@@ -220,7 +282,11 @@ class ItemListPanel extends React.Component<Props> {
                   <div className={classes.titleSecondary}>
                     { entry.fields.get('UserName') !== '' &&
                       <>
-                        <SvgPath className={classes.inlineLeftIcon} path = {SystemIcon.user} />
+                        <SvgPath
+                          className={clsx(classes.inlineLeftIcon, classes.copyCursor)}
+                          path = {SystemIcon.user}
+                          onDoubleClick = {event => this.handleCopy(entry, 'UserName', event)}
+                        />
                         {entry.fields.get('UserName')}
                       </>
                     }
@@ -230,7 +296,11 @@ class ItemListPanel extends React.Component<Props> {
                 <div className={classes.titleSecondary}>
                   { entry.fields.get('URL') !== '' &&
                     <>
-                      <SvgPath className={classes.inlineLeftIcon} path = {DefaultKeeIcon.link}/>
+                      <SvgPath
+                        className={clsx(classes.inlineLeftIcon, classes.copyCursor)}
+                        path = {DefaultKeeIcon.link}
+                        onDoubleClick = {event => this.handleCopy(entry, 'URL', event)}
+                      />
                       {entry.fields.get('URL')}
                     </>
                   }
@@ -243,6 +313,15 @@ class ItemListPanel extends React.Component<Props> {
                     </>
                   }
                 </div>
+                <Paper
+                  id = {'notify-' + entry.uuid.id}
+                  className={classes.notifyBase}
+                  onTransitionEnd={() => this.hideCopyNotify(entry.uuid.id)}
+                >
+                  <Typography>
+                    {this.state.copiedFileld} copied
+                  </Typography>
+                </Paper>
               </div>
               <div className = {classes.itemAttachIcon}>
                 { entry.binaries.size > 0 && <SvgPath path = {SystemIcon.attachFile} /> }
