@@ -3,7 +3,7 @@ import React from "react";
 import { Box, createStyles, darken, Paper, Theme, Tooltip,  Typography,  withStyles, WithStyles} from "@material-ui/core";
 
 import { KdbxEntry, ProtectedValue} from "kdbxweb";
-import { DefaultKeeIcon, SystemIcon } from "../entity/GlobalObject";
+import { DefaultFields, DefaultKeeIcon, SystemIcon } from "../entity/GlobalObject";
 import { KeeDataContext } from "../entity/Context";
 import KeeData from "../entity/KeeData";
 import { SvgPath } from "./helper/SvgPath";
@@ -196,14 +196,6 @@ class ItemListPanel extends React.Component<Props> {
     this.setState({selectedEntryId: entry.uuid.id})
   }
 
-  handleDoubleClick(entry: KdbxEntry) {
-    navigator.clipboard.writeText(
-      (entry.fields.get('Password') as ProtectedValue).getText()
-    );
-    this.setState({copiedFileld: 'password'});
-    this.showCopyNotify(entry.uuid.id);
-  }
-
   showCopyNotify(id: string) {
     const notify = document.getElementById('notify-' + id);
     if (notify) {
@@ -220,12 +212,17 @@ class ItemListPanel extends React.Component<Props> {
     }
   }
 
-  handleCopy(entry: KdbxEntry, field: string, event: React.MouseEvent<SVGSVGElement, MouseEvent>) {
-    navigator.clipboard.writeText(
-      entry.fields.has(field) ? entry.fields.get(field)!.toString() : '');
+  handleCopy(entry: KdbxEntry, fieldName: string, event: React.MouseEvent<Element, MouseEvent>) {
     event.stopPropagation();
-    this.setState({copiedFileld: field});
-    this.showCopyNotify(entry.uuid.id);
+    const field = entry.fields.get(fieldName);
+    if (field) {
+      const copyText = (fieldName === 'Password')
+        ? (field  as ProtectedValue).getText()
+        : field.toString();
+      navigator.clipboard.writeText(copyText);
+      this.setState({copiedFileld: DefaultFields[fieldName as keyof typeof DefaultFields]});
+      this.showCopyNotify(entry.uuid.id);
+    }
   }
 
   filter(entry: KdbxEntry, filterString: string): boolean {
@@ -251,16 +248,20 @@ class ItemListPanel extends React.Component<Props> {
           >
             <div
               onClick = {() => this.handleClick(entry)}
-              onDoubleClick = { () => this.handleDoubleClick(entry)}
+              //onDoubleClick = { () => this.handleDoubleClick(entry)}
               className = {
                 clsx(classes.listItem, (this.state.selectedEntryId === entry.uuid.id) && classes.listItemSelected)
               }
             >
-              <div className = {classes.mainIconDiv}>
+              <div
+                className = {clsx(classes.mainIconDiv, classes.copyCursor)}
+                onDoubleClick = {event => this.handleCopy(entry, 'Password', event)}
+              >
                 {entry.customIcon && !entry.customIcon.empty
                   ? <img
                       className = {classes.mainIconContent}
-                      src={(this.context as KeeData).getCustomIcon(entry.customIcon.id)}>
+                      src={(this.context as KeeData).getCustomIcon(entry.customIcon.id)}
+                    >
                     </img>
                   : <SvgPath className = {classes.mainIconContent} path = {DefaultKeeIcon.get(entry.icon ?? 0)} />
                 }
