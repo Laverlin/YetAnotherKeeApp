@@ -12,6 +12,7 @@ export default class KeeData {
   #groupListeners = [] as {(entries: KdbxEntry[]): void} [];
   #entryListeners = [] as {(entry: KdbxEntry): void} [];
   #searchFilterListeners = [] as {(query: string): void} [];
+  #sortListeners = [] as {(sortField: string): void} [];
 
 
   // Set path to database file
@@ -125,4 +126,15 @@ export default class KeeData {
     this.#searchFilterListeners.forEach(listener => listener(query));
   }
 
+  addSortListener(listener: {(sortField: string): void}) {
+    this.#sortListeners.push(listener);
+  }
+
+  removeSortListener(listener: {(sortField: string): void}) {
+    this.#sortListeners = this.#sortListeners.filter(item => listener !== item);
+  }
+
+  notifySortSubscribers(sortField:string) {
+    this.#sortListeners.forEach(listener => listener(sortField));
+  }
 }

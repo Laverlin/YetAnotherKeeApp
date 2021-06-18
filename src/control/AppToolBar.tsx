@@ -5,7 +5,7 @@ import {  createStyles, WithStyles, withStyles, Theme } from "@material-ui/core/
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
-import { Button, createMuiTheme, IconButton, InputAdornment, MuiThemeProvider, OutlinedInput, Popover} from "@material-ui/core";
+import { Button, createMuiTheme, IconButton, InputAdornment, ListItemIcon, Menu, MenuItem, MuiThemeProvider, OutlinedInput, Popover} from "@material-ui/core";
 import clsx from "clsx";
 
 import { SystemIcon } from "../entity/GlobalObject";
@@ -69,7 +69,8 @@ const styles = (theme: Theme) =>  createStyles({
       width: '400px',
       color: theme.palette.getContrastText(theme.palette.primary.dark),
       backgroundColor: theme.palette.primary.main,
-      marginLeft:'16px',
+      marginLeft: theme.spacing(2),
+      marginRight: theme.spacing(1)
     },
 
     aboutPaper: {
@@ -117,6 +118,8 @@ class AppToolBar extends React.Component<Props>
   state = {
     isMaximized: electron.remote.getCurrentWindow().isMaximized(),
     isPopOpen: false,
+    isSortMenuOpen: false,
+    sortField: 'Title'
   }
 
   info = {
@@ -127,6 +130,7 @@ class AppToolBar extends React.Component<Props>
   }
 
   private _anchorEl = null as any;
+  #sortAnchor = null as any;
 
   constructor(props: Props)
   {
@@ -149,11 +153,20 @@ class AppToolBar extends React.Component<Props>
 
 	handleMenuClose = () => this.setState({ isPopOpen: false });
 
+  handleSortMenuOpen = () => this.setState({	isSortMenuOpen: true });
+
+  handleSortMenuClose = () => this.setState({	isSortMenuOpen: false });
+
   handleBackClick = () => this.props.history.goBack();
 
   handleSearch(filter: string) {
     (document.getElementById("search") as HTMLInputElement)!.value = filter;
     (this.context as KeeData).notifySearchFilterSubscribers(filter);
+  }
+
+  handleSort(sortField: string) {
+    (this.context as KeeData).notifySortSubscribers(sortField);
+    this.setState({	isSortMenuOpen: false, sortField: sortField });
   }
 
   render() {
@@ -190,6 +203,14 @@ class AppToolBar extends React.Component<Props>
                   }
                 />
               </MuiThemeProvider>
+              <IconButton
+                color="inherit"
+                className = {clsx(classes.button)}
+                buttonRef={node => { this.#sortAnchor = node }}
+                onClick = {this.handleSortMenuOpen}
+              >
+                <SvgPath className = {classes.icon20} path = {SystemIcon.sort}/>
+              </IconButton>
             </>
           }
 
@@ -242,6 +263,49 @@ class AppToolBar extends React.Component<Props>
         </Typography>
         <Button onClick={this.handleBackClick}>Get back</Button>
       </Popover>
+
+      <Menu
+        keepMounted
+        open = {this.state.isSortMenuOpen}
+        onClose = {this.handleSortMenuClose}
+        anchorEl = {this.#sortAnchor}
+        anchorOrigin = {{vertical: 'bottom', horizontal: 'right'}}
+        transformOrigin = {{vertical: 'top', horizontal: 'left'}}
+        getContentAnchorEl = {null}
+      >
+        <MenuItem onClick = {() => this.handleSort('Title')} >
+          Sort by Title
+          <ListItemIcon style={{marginLeft: 'auto'}}>
+            { (this.state.sortField === 'Title')
+              && <SvgPath path = {SystemIcon.sortArrowAsc} style={{marginLeft: 'auto'}}/>
+            }
+          </ListItemIcon>
+        </MenuItem>
+        <MenuItem onClick = {() => this.handleSort('creationTime')}>
+          Sort by Creation Time
+          <ListItemIcon style={{marginLeft: 'auto'}}>
+            { (this.state.sortField === 'creationTime')
+              && <SvgPath path = {SystemIcon.sortArrowAsc} style={{marginLeft: 'auto'}}/>
+            }
+          </ListItemIcon>
+        </MenuItem>
+        <MenuItem onClick = {() => this.handleSort('UserName')}>
+          Sort by User Name
+          <ListItemIcon style={{marginLeft: 'auto'}}>
+            { (this.state.sortField === 'UserName')
+              && <SvgPath path = {SystemIcon.sortArrowAsc} style={{marginLeft: 'auto'}}/>
+            }
+          </ListItemIcon>
+        </MenuItem>
+        <MenuItem onClick = {() => this.handleSort('URL')}>
+          Sort by Url
+          <ListItemIcon style={{marginLeft: 'auto'}}>
+            { (this.state.sortField === 'URL')
+              && <SvgPath path = {SystemIcon.sortArrowAsc} style={{marginLeft: 'auto'}}/>
+            }
+          </ListItemIcon>
+        </MenuItem>
+      </Menu>
     </>
     );
   }

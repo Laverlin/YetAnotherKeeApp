@@ -1,12 +1,13 @@
 import clsx from "clsx";
 import React from "react";
-import { Box, createStyles, darken, Paper, Theme, Tooltip,  Typography,  withStyles, WithStyles} from "@material-ui/core";
+import { createStyles, darken, Divider, ListItemIcon, Menu, MenuItem, Paper, Theme, Tooltip,  Typography,  withStyles, WithStyles} from "@material-ui/core";
 
 import { KdbxEntry, ProtectedValue} from "kdbxweb";
 import { DefaultFields, DefaultKeeIcon, SystemIcon } from "../entity/GlobalObject";
 import { KeeDataContext } from "../entity/Context";
 import KeeData from "../entity/KeeData";
 import { SvgPath } from "./helper/SvgPath";
+import DateFnsUtils from "@date-io/date-fns";
 
 const styles = (theme: Theme) =>  createStyles({
   list: {
@@ -161,12 +162,21 @@ class ItemListPanel extends React.Component<Props> {
     selectedEntryId: '',
     filterString: '',
     copiedFileld: '',
+    isContextMenuOpen: false,
+    mouseX: 0,
+    mouseY: 0,
+    selectedEntry: undefined as KdbxEntry | undefined,
+    sortField: 'Title'
   }
 
   constructor(props : Props){
     super(props);
     this.handleGroupUpdate = this.handleGroupUpdate.bind(this);
     this.handleSearchUpdate = this.handleSearchUpdate.bind(this);
+    this.handleSortUpdate = this.handleSortUpdate.bind(this);
+    this.handleContextMenuOpen = this.handleContextMenuOpen.bind(this);
+    this.handleContextMenuClose = this.handleContextMenuClose.bind(this);
+    this.handleCopy = this.handleCopy.bind(this);
   }
 
   componentDidMount() {
@@ -175,16 +185,22 @@ class ItemListPanel extends React.Component<Props> {
     const entities = keeData.database.getDefaultGroup().entries;
     this.setState({entries: Array.from(entities)});
     keeData.addSearchFilterListener(this.handleSearchUpdate);
+    keeData.addSortListener(this.handleSortUpdate);
   }
 
   componentWillUnmount() {
     const keeData = (this.context as KeeData);
     keeData.removeGroupListener(this.handleGroupUpdate);
     keeData.removeSearchFilterListener(this.handleSearchUpdate);
+    keeData.removeSortListener(this.handleSortUpdate);
   }
 
   handleSearchUpdate(query: string) {
     this.setState({filterString: query});
+  }
+
+  handleSortUpdate(sortField: string) {
+    this.setState({sortField: sortField});
   }
 
   handleGroupUpdate(entries: KdbxEntry[]) {
@@ -212,17 +228,42 @@ class ItemListPanel extends React.Component<Props> {
     }
   }
 
-  handleCopy(entry: KdbxEntry, fieldName: string, event: React.MouseEvent<Element, MouseEvent>) {
+  handleCopy(
+    fieldName: string,
+    event: React.MouseEvent<Element, MouseEvent>,
+    entry: KdbxEntry | undefined = undefined
+  ): void {
     event.stopPropagation();
+    entry = entry ?? this.state.selectedEntry;
+    if (!entry) {
+      return;
+    }
     const field = entry.fields.get(fieldName);
     if (field) {
       const copyText = (fieldName === 'Password')
         ? (field  as ProtectedValue).getText()
         : field.toString();
       navigator.clipboard.writeText(copyText);
-      this.setState({copiedFileld: DefaultFields[fieldName as keyof typeof DefaultFields]});
+      this.setState({
+        copiedFileld: DefaultFields[fieldName as keyof typeof DefaultFields],
+        isContextMenuOpen: false
+      });
       this.showCopyNotify(entry.uuid.id);
     }
+  }
+
+  handleContextMenuOpen(event: React.MouseEvent<HTMLDivElement>, entry: KdbxEntry) {
+    event.preventDefault();
+    this.setState({
+      isContextMenuOpen: true,
+      mouseX: event.clientX,
+      mouseY: event.clientY,
+      selectedEntry: entry,
+    });
+  }
+
+  handleContextMenuClose() {
+    this.setState({isContextMenuOpen: false});
   }
 
   filter(entry: KdbxEntry, filterString: string): boolean {
@@ -231,107 +272,153 @@ class ItemListPanel extends React.Component<Props> {
       entry.fields.get('URL')?.toString().toLowerCase().includes(filterString) as boolean
   }
 
+  sort(entryA: KdbxEntry, entryB: KdbxEntry, sortingField: string) {
+    if (sortingField === 'creationTime') {
+      const timeA = entryA.times.creationTime;
+      const timeB = entryB.times.creationTime;
+      if (!timeA || !timeB) {return -1}
+      return  (timeA.valueOf() - timeB.valueOf());
+    }
+    const fieldA = entryA.fields.get(sortingField);
+    const fieldB = entryB.fields.get(sortingField);
+    if (!fieldA || !fieldB) { return -1 }
+    return fieldA.toString().localeCompare(fieldB.toString());
+  }
+
   render(){
     const { classes } = this.props;
     const { entries, filterString } = this.state;
 
     return (
-      <div className = {classes.list}>
-        {entries?.filter(entry => this.filter(entry, filterString)).map((entry) =>
-          <LightTooltip
-            key = {entry.uuid.id}
-            title = {
-              entry.fields.get('Notes')
-                ? <React.Fragment> {entry.fields.get('Notes')} </React.Fragment>
-                : ""
-            }
-          >
-            <div
-              onClick = {() => this.handleClick(entry)}
-              //onDoubleClick = { () => this.handleDoubleClick(entry)}
-              className = {
-                clsx(classes.listItem, (this.state.selectedEntryId === entry.uuid.id) && classes.listItemSelected)
+      <>
+        <div className = {classes.list}>
+          {entries?.filter(entry => this.filter(entry, filterString))
+            .sort((a, b) => this.sort(a, b, this.state.sortField))
+            .map((entry) =>
+            <LightTooltip
+              key = {entry.uuid.id}
+              title = {
+                entry.fields.get('Notes')
+                  ? <React.Fragment> {entry.fields.get('Notes')} </React.Fragment>
+                  : ""
               }
             >
               <div
-                className = {clsx(classes.mainIconDiv, classes.copyCursor)}
-                onDoubleClick = {event => this.handleCopy(entry, 'Password', event)}
-              >
-                {entry.customIcon && !entry.customIcon.empty
-                  ? <img
-                      className = {classes.mainIconContent}
-                      src={(this.context as KeeData).getCustomIcon(entry.customIcon.id)}
-                    >
-                    </img>
-                  : <SvgPath className = {classes.mainIconContent} path = {DefaultKeeIcon.get(entry.icon ?? 0)} />
+                onClick = {() => this.handleClick(entry)}
+                onContextMenu = {event => this.handleContextMenuOpen(event, entry)}
+                className = {
+                  clsx(classes.listItem, (this.state.selectedEntryId === entry.uuid.id) && classes.listItemSelected)
                 }
-
-              </div>
-              <div className = {classes.itemContent}>
-                <div className = {classes.itemContentRow}>
-                  <div className={classes.title}>
-                    {entry.fields.get('Title') === '' ? "(No Title)" : entry.fields.get('Title')}
-                  </div>
-                  {entry.times.expires &&
-                    <div className={clsx(classes.titleSecondary, classes.flexAlignRight)}>
-                      <SvgPath className={classes.inlineLeftIcon} path = {SystemIcon.expire} />
-                      {entry.times.expiryTime?.toDateString()}
-                    </div>
+              >
+                <div
+                  className = {clsx(classes.mainIconDiv, classes.copyCursor)}
+                  onDoubleClick = {event => this.handleCopy('Password', event, entry)}
+                >
+                  {entry.customIcon && !entry.customIcon.empty
+                    ? <img
+                        className = {classes.mainIconContent}
+                        src={(this.context as KeeData).getCustomIcon(entry.customIcon.id)}
+                      >
+                      </img>
+                    : <SvgPath className = {classes.mainIconContent} path = {DefaultKeeIcon.get(entry.icon ?? 0)} />
                   }
+
                 </div>
-                <div className = {classes.itemContentRow}>
+                <div className = {classes.itemContent}>
+                  <div className = {classes.itemContentRow}>
+                    <div className={classes.title}>
+                      {entry.fields.get('Title') === '' ? "(No Title)" : entry.fields.get('Title')}
+                    </div>
+                    {entry.times.expires &&
+                      <div className={clsx(classes.titleSecondary, classes.flexAlignRight)}>
+                        <SvgPath className={classes.inlineLeftIcon} path = {SystemIcon.expire} />
+                        {entry.times.expiryTime?.toDateString()}
+                      </div>
+                    }
+                  </div>
+                  <div className = {classes.itemContentRow}>
+                    <div className={classes.titleSecondary}>
+                      { entry.fields.get('UserName') !== '' &&
+                        <>
+                          <SvgPath
+                            className={clsx(classes.inlineLeftIcon, classes.copyCursor)}
+                            path = {SystemIcon.user}
+                            onDoubleClick = {event => this.handleCopy('UserName', event, entry)}
+                          />
+                          {entry.fields.get('UserName')}
+                        </>
+                      }
+                    </div>
+
+                  </div>
                   <div className={classes.titleSecondary}>
-                    { entry.fields.get('UserName') !== '' &&
+                    { entry.fields.get('URL') !== '' &&
                       <>
                         <SvgPath
                           className={clsx(classes.inlineLeftIcon, classes.copyCursor)}
-                          path = {SystemIcon.user}
-                          onDoubleClick = {event => this.handleCopy(entry, 'UserName', event)}
+                          path = {DefaultKeeIcon.link}
+                          onDoubleClick = {event => this.handleCopy('URL', event, entry)}
                         />
-                        {entry.fields.get('UserName')}
+                        {entry.fields.get('URL')}
                       </>
                     }
                   </div>
-
+                  <div className={clsx(classes.titleSecondary, classes.itemContentLastRow)} >
+                    { entry.tags.length > 0 &&
+                      <>
+                        <SvgPath className={classes.inlineLeftIcon} path = {SystemIcon.tag} />
+                        {entry.tags.join(', ')}
+                      </>
+                    }
+                  </div>
+                  <Paper
+                    id = {'notify-' + entry.uuid.id}
+                    className={classes.notifyBase}
+                    onTransitionEnd={() => this.hideCopyNotify(entry.uuid.id)}
+                  >
+                    <Typography>
+                      {this.state.copiedFileld} copied
+                    </Typography>
+                  </Paper>
                 </div>
-                <div className={classes.titleSecondary}>
-                  { entry.fields.get('URL') !== '' &&
-                    <>
-                      <SvgPath
-                        className={clsx(classes.inlineLeftIcon, classes.copyCursor)}
-                        path = {DefaultKeeIcon.link}
-                        onDoubleClick = {event => this.handleCopy(entry, 'URL', event)}
-                      />
-                      {entry.fields.get('URL')}
-                    </>
-                  }
+                <div className = {classes.itemAttachIcon}>
+                  { entry.binaries.size > 0 && <SvgPath path = {SystemIcon.attachFile} /> }
                 </div>
-                <div className={clsx(classes.titleSecondary, classes.itemContentLastRow)} >
-                  { entry.tags.length > 0 &&
-                    <>
-                      <SvgPath className={classes.inlineLeftIcon} path = {SystemIcon.tag} />
-                      {entry.tags.join(', ')}
-                    </>
-                  }
-                </div>
-                <Paper
-                  id = {'notify-' + entry.uuid.id}
-                  className={classes.notifyBase}
-                  onTransitionEnd={() => this.hideCopyNotify(entry.uuid.id)}
-                >
-                  <Typography>
-                    {this.state.copiedFileld} copied
-                  </Typography>
-                </Paper>
+                <div style={{width:'8px', backgroundColor: entry.bgColor}}/>
               </div>
-              <div className = {classes.itemAttachIcon}>
-                { entry.binaries.size > 0 && <SvgPath path = {SystemIcon.attachFile} /> }
-              </div>
-              <div style={{width:'8px', backgroundColor: entry.bgColor}}/>
-            </div>
-          </LightTooltip>
-        )}
-      </div>
+            </LightTooltip>
+          )}
+        </div>
+        <Menu
+          keepMounted
+          open = {this.state.isContextMenuOpen}
+          onClose = {this.handleContextMenuClose}
+          anchorReference = "anchorPosition"
+          anchorPosition = {{ top: this.state.mouseY, left: this.state.mouseX }}
+        >
+          <MenuItem onClick = {event => this.handleCopy('Password', event)}>
+            <ListItemIcon>
+              <SvgPath path = {DefaultKeeIcon.key}/>
+            </ListItemIcon>
+            Copy Password
+          </MenuItem>
+          <MenuItem onClick = {event => this.handleCopy('UserName', event)}>
+            <ListItemIcon>
+              <SvgPath path = {SystemIcon.user}/>
+            </ListItemIcon>
+            Copy User Name
+          </MenuItem>
+          <MenuItem onClick = {event => this.handleCopy('URL', event)}>
+            <ListItemIcon>
+              <SvgPath path = {DefaultKeeIcon.link} />
+            </ListItemIcon>
+            Copy Url
+          </MenuItem>
+          <Divider/>
+          <MenuItem onClick={this.handleContextMenuClose}>Go to Url</MenuItem>
+          <MenuItem onClick={this.handleContextMenuClose}>Auto-Type</MenuItem>
+        </Menu>
+      </>
     )
   }
 
