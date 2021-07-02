@@ -7,7 +7,7 @@ import { remote } from "electron";
 import KeeData from "../entity/KeeData";
 import { KeeDataContext } from "../entity/Context";
 import path from "path";
-import { SvgPath } from "./helper/SvgPath";
+import { SvgPath } from "./common/SvgPath";
 import { ProtectedValue } from "kdbxweb";
 
 

@@ -5,7 +5,7 @@ import {
   withStyles,
   Theme,
 } from '@material-ui/core/styles';
-import GroupList from './GroupList';
+import GroupList from './groupList/GroupList';
 import ItemListPanel from './ItemListPanel';
 import ItemDetailPanel from './ItemDetailPanel';
 

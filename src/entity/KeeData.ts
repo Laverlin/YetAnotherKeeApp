@@ -13,7 +13,8 @@ export default class KeeData {
   #entryListeners = [] as {(entry: KdbxEntry): void} [];
   #searchFilterListeners = [] as {(query: string): void} [];
   #sortListeners = [] as {(sortField: string): void} [];
-
+  #colorFilterListeners = [] as {(colorFilter: string): void} [];
+  #tagFilterListeners = [] as {(selectedTags: string[]): void} [];
 
   // Set path to database file
   //
@@ -76,6 +77,14 @@ export default class KeeData {
   //
   get recycleBinUuid(){ return this.database.meta.recycleBinUuid }
 
+  get tags(): string[] {
+     let tags: string[] = [];
+     for (const e of this.database.getDefaultGroup().allGroupsAndEntries()) {
+       tags = tags.concat(e.tags);
+     }
+     return [...new Set(tags)];
+  }
+
   // Add listener for event if group has changed
   //
   addGroupListener(listener : {(entries: KdbxEntry[]):void}) {
@@ -134,7 +143,30 @@ export default class KeeData {
     this.#sortListeners = this.#sortListeners.filter(item => listener !== item);
   }
 
-  notifySortSubscribers(sortField:string) {
+  notifySortSubscribers(sortField: string) {
     this.#sortListeners.forEach(listener => listener(sortField));
   }
+
+  addColorFilterListener(listener: {(colorFilter: string): void}) {
+    this.#colorFilterListeners.push(listener);
+  }
+  removeColorFilterListener(listener: {(colorFilter: string): void}) {
+    this.#colorFilterListeners.filter(item => listener != item);
+  }
+  notifyColorFilterSubscribers(colorFilter: string){
+    this.#colorFilterListeners.forEach(listener => listener(colorFilter));
+  }
+
+  addTagFilterListener(listener: {(tags: string[]): void}) {
+    this.#tagFilterListeners.push(listener);
+  }
+  removeTagFilterListener(listener: {(tsgs: string[]): void}) {
+    this.#tagFilterListeners.filter(item => listener != item);
+  }
+  notifyTagFilterSubscribers(tags: string[]){
+    this.#tagFilterListeners.forEach(listener => listener(tags));
+  }
+
+
+
 }

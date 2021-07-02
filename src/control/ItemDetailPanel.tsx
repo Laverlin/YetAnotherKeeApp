@@ -36,7 +36,7 @@ import {
 } from '@material-ui/pickers';
 import DateFnsUtils from '@date-io/date-fns';
 import { MaterialUiPickersDate } from "@material-ui/pickers/typings/date";
-import { SvgPath } from "./helper/SvgPath";
+import { SvgPath } from "./common/SvgPath";
 
 const styles = (theme: Theme) =>  createStyles({
 

@@ -9,7 +9,7 @@ import { Button, createMuiTheme, IconButton, InputAdornment, ListItemIcon, Menu,
 import clsx from "clsx";
 
 import { SystemIcon } from "../entity/GlobalObject";
-import { SvgPath } from "./helper/SvgPath";
+import { SvgPath } from "./common/SvgPath";
 import { KeeDataContext } from "../entity/Context";
 import KeeData from "../entity/KeeData";
 
@@ -188,7 +188,7 @@ class AppToolBar extends React.Component<Props>
 
           {(this.props.history.location.pathname != '/') &&
             <>
-              <Typography style ={{marginLeft:'auto'}}>...{(this.context as KeeData).dbName}</Typography>
+              <Typography style ={{marginLeft:'auto'}}>/// {(this.context as KeeData).dbName}</Typography>
               <MuiThemeProvider theme = {theme}>
                 <OutlinedInput
                   id = "search"

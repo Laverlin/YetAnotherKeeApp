@@ -6,8 +6,8 @@ import { KdbxEntry, ProtectedValue} from "kdbxweb";
 import { DefaultFields, DefaultKeeIcon, SystemIcon } from "../entity/GlobalObject";
 import { KeeDataContext } from "../entity/Context";
 import KeeData from "../entity/KeeData";
-import { SvgPath } from "./helper/SvgPath";
-import DateFnsUtils from "@date-io/date-fns";
+import { SvgPath } from "./common/SvgPath";
+import { scrollBar } from "./common/commonStyle";
 
 const styles = (theme: Theme) =>  createStyles({
   list: {
@@ -18,26 +18,9 @@ const styles = (theme: Theme) =>  createStyles({
     right: 0,
     paddingTop: theme.spacing(2),
     overflow: 'hidden',
-    "overflow-y": 'overlay',
-    "&::-webkit-scrollbar" : {
-      width: '10px',
-    },
-    "&::-webkit-scrollbar-track": {
-      background: 'transparent',
-    },
-    "&::-webkit-scrollbar-thumb": {
-      background: 'transparent',
-      borderRadius: '6px',
-      backgroundClip: 'padding-box',
-      borderRight: '2px transparent solid',
-      borderLeft: '2px transparent solid'
-    },
-    "&:hover": {
-      "&::-webkit-scrollbar-thumb": {
-        backgroundColor:'rgba(0, 0, 0, 0.4)'
-      }
-    }
   },
+
+  scrollBar: scrollBar,
 
   title: {
     textOverflow: 'ellipsis',
@@ -166,7 +149,9 @@ class ItemListPanel extends React.Component<Props> {
     mouseX: 0,
     mouseY: 0,
     selectedEntry: undefined as KdbxEntry | undefined,
-    sortField: 'Title'
+    sortField: 'Title',
+    colorFilter: '',
+    selectedTags: [] as string[]
   }
 
   constructor(props : Props){
@@ -177,6 +162,8 @@ class ItemListPanel extends React.Component<Props> {
     this.handleContextMenuOpen = this.handleContextMenuOpen.bind(this);
     this.handleContextMenuClose = this.handleContextMenuClose.bind(this);
     this.handleCopy = this.handleCopy.bind(this);
+    this.handleColorFilter = this.handleColorFilter.bind(this);
+    this.handleTagFilter = this.handleTagFilter.bind(this);
   }
 
   componentDidMount() {
@@ -186,6 +173,8 @@ class ItemListPanel extends React.Component<Props> {
     this.setState({entries: Array.from(entities)});
     keeData.addSearchFilterListener(this.handleSearchUpdate);
     keeData.addSortListener(this.handleSortUpdate);
+    keeData.addColorFilterListener(this.handleColorFilter);
+    keeData.addTagFilterListener(this.handleTagFilter);
   }
 
   componentWillUnmount() {
@@ -193,6 +182,8 @@ class ItemListPanel extends React.Component<Props> {
     keeData.removeGroupListener(this.handleGroupUpdate);
     keeData.removeSearchFilterListener(this.handleSearchUpdate);
     keeData.removeSortListener(this.handleSortUpdate);
+    keeData.removeColorFilterListener(this.handleColorFilter);
+    keeData.removeTagFilterListener(this.handleTagFilter);
   }
 
   handleSearchUpdate(query: string) {
@@ -205,6 +196,10 @@ class ItemListPanel extends React.Component<Props> {
 
   handleGroupUpdate(entries: KdbxEntry[]) {
     this.setState({entries: entries});
+  }
+
+  handleColorFilter(colorFilter: string) {
+    this.setState({colorFilter: colorFilter});
   }
 
   handleClick(entry: KdbxEntry) {
@@ -266,10 +261,18 @@ class ItemListPanel extends React.Component<Props> {
     this.setState({isContextMenuOpen: false});
   }
 
-  filter(entry: KdbxEntry, filterString: string): boolean {
-    return entry.fields.get('Title')?.toString().toLowerCase().includes(filterString) ||
+  filter(entry: KdbxEntry, filterString: string, selectedTag: string[]): boolean {
+    let filter = entry.fields.get('Title')?.toString().toLowerCase().includes(filterString) ||
       entry.fields.get('UserName')?.toString().toLowerCase().includes(filterString) ||
       entry.fields.get('URL')?.toString().toLowerCase().includes(filterString) as boolean
+    if (this.state.colorFilter !== '') {
+       filter = filter && entry.bgColor === this.state.colorFilter;
+    }
+    if (this.state.selectedTags.length > 0) {
+      filter = filter && entry.tags.filter(i => selectedTag.includes(i)).length > 0
+    }
+
+    return filter;
   }
 
   sort(entryA: KdbxEntry, entryB: KdbxEntry, sortingField: string) {
@@ -285,14 +288,18 @@ class ItemListPanel extends React.Component<Props> {
     return fieldA.toString().localeCompare(fieldB.toString());
   }
 
+  handleTagFilter(tags: string[]) {
+    this.setState({selectedTags: tags});
+  }
+
   render(){
     const { classes } = this.props;
-    const { entries, filterString } = this.state;
+    const { entries, filterString, selectedTags } = this.state;
 
     return (
       <>
-        <div className = {classes.list}>
-          {entries?.filter(entry => this.filter(entry, filterString))
+        <div className = {clsx(classes.list, classes.scrollBar)}>
+          {entries?.filter(entry => this.filter(entry, filterString, selectedTags))
             .sort((a, b) => this.sort(a, b, this.state.sortField))
             .map((entry) =>
             <LightTooltip
