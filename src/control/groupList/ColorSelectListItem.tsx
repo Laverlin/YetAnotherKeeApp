@@ -8,11 +8,10 @@ import {
   withStyles,
   WithStyles
 } from "@material-ui/core";
-import KeeData from "../../entity/KeeData";
-import { KeeDataContext } from "../../entity/Context";
-import { DefaultColors, SystemIcon } from "../../entity/GlobalObject";
+
+import {KeeData, KeeDataContext, DefaultColors, SystemIcon } from "../../entity";
 import {groupListStyles} from "./groupListStyles"
-import { SvgPath } from "../common/SvgPath";
+import {SvgPath} from "../common";
 
 interface Props extends WithStyles<typeof groupListStyles> {}
 
@@ -22,7 +21,14 @@ class ColorSelectListItem extends React.Component<Props> {
   get keeData() { return this.context as KeeData; }
 
   state = {
-    colors: [DefaultColors.yellow, DefaultColors.green, DefaultColors.red, DefaultColors.orange, DefaultColors.blue, DefaultColors.purple],
+    colors: [
+      DefaultColors.yellow,
+      DefaultColors.green,
+      DefaultColors.red,
+      DefaultColors.orange,
+      DefaultColors.blue,
+      DefaultColors.purple
+    ],
     selectedColor: '',
     isShowColorSelection: false,
   }
@@ -80,5 +86,4 @@ class ColorSelectListItem extends React.Component<Props> {
 }
 
 export default withStyles(groupListStyles, { withTheme: true })(ColorSelectListItem);
-
 

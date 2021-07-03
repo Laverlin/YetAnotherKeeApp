@@ -5,7 +5,7 @@ import {
   withStyles,
   Theme,
 } from '@material-ui/core/styles';
-import GroupList from './groupList/GroupList';
+import {GroupListPanel} from './groupList';
 import ItemListPanel from './ItemListPanel';
 import ItemDetailPanel from './ItemDetailPanel';
 
@@ -18,7 +18,6 @@ class DraggerPosition {
     this.maxPosition = max,
     this.minPosition = min
   }
-
 }
 
 const styles = (theme: Theme) => createStyles({
@@ -126,7 +125,7 @@ class MainLayout extends React.Component<Props> {
           className={classes.leftBar}
           style={{ width: this.state.draggers[0].position }}
         >
-          <GroupList />
+          <GroupListPanel />
         </div>
         <div
           className={classes.dragger}

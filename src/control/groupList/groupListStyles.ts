@@ -1,5 +1,5 @@
 import { createStyles, Theme } from "@material-ui/core";
-import { scrollBar } from "../common/commonStyle";
+import { scrollBar } from "../common";
 
 export const groupListStyles = (theme: Theme) =>  createStyles({
   listItemText:{
@@ -15,7 +15,7 @@ export const groupListStyles = (theme: Theme) =>  createStyles({
     textOverflow: 'ellipsis',
     overflow: 'hidden',
     whiteSpace:'nowrap',
-    color: theme.palette.grey.A100
+    color: theme.palette.grey[400]
   },
 
   listItem:{

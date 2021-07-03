@@ -11,16 +11,14 @@ import {
   withStyles,
   WithStyles
 } from "@material-ui/core";
-import KeeData from "../../entity/KeeData";
-import { KeeDataContext } from "../../entity/Context";
+import {KeeData, KeeDataContext, DefaultColors, SystemIcon } from "../../entity";
 import {groupListStyles} from "./groupListStyles"
-import { SvgPath } from "../common/SvgPath";
-import { DefaultColors, SystemIcon } from "../../entity/GlobalObject";
+import {SvgPath} from "../common";
 
-interface Props extends WithStyles<typeof groupListStyles> {}
+interface ITagSelectListItemProps extends WithStyles<typeof groupListStyles> {}
 
-class TagSelectListItem extends React.Component<Props> {
-  constructor(props: Props) {
+class TagSelectListItem extends React.Component<ITagSelectListItemProps> {
+  constructor(props: ITagSelectListItemProps) {
     super(props);
     this.handleClearTags = this.handleClearTags.bind(this);
   }
@@ -52,7 +50,7 @@ class TagSelectListItem extends React.Component<Props> {
 
   render()
   {
-    const { classes }  = this.props;
+    const { classes } = this.props;
     const { selectedTags, isShowTagSelection, isShowClear } = this.state;
 
     return (

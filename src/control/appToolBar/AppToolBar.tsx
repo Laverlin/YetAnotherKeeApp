@@ -2,16 +2,13 @@ import electron from "electron"
 import React from "react";
 import { RouteComponentProps, withRouter } from "react-router-dom";
 import {  createStyles, WithStyles, withStyles, Theme } from "@material-ui/core/styles";
-import AppBar from "@material-ui/core/AppBar";
-import Toolbar from "@material-ui/core/Toolbar";
-import Typography from "@material-ui/core/Typography";
-import { Button, createMuiTheme, IconButton, InputAdornment, ListItemIcon, Menu, MenuItem, MuiThemeProvider, OutlinedInput, Popover} from "@material-ui/core";
+import {AppBar, Toolbar, Button, IconButton, Popover, Typography} from "@material-ui/core";
 import clsx from "clsx";
 
-import { SystemIcon } from "../entity/GlobalObject";
-import { SvgPath } from "./common/SvgPath";
-import { KeeDataContext } from "../entity/Context";
-import KeeData from "../entity/KeeData";
+import { KeeData, KeeDataContext, SystemIcon } from "../../entity";
+import { SvgPath } from "../common";
+import SearchBox from "./SearchBox";
+import SortMenu from "./SortMenu";
 
 
 const styles = (theme: Theme) =>  createStyles({
@@ -63,14 +60,9 @@ const styles = (theme: Theme) =>  createStyles({
       width: 20
     },
 
-    searchInput:{
-      WebkitAppRegion:'no-drag',
-      height: '24px',
-      width: '400px',
-      color: theme.palette.getContrastText(theme.palette.primary.dark),
-      backgroundColor: theme.palette.primary.main,
-      marginLeft: theme.spacing(2),
-      marginRight: theme.spacing(1)
+    dbName: {
+      marginLeft: 'auto',
+      color: theme.palette.grey.A100
     },
 
     aboutPaper: {
@@ -84,27 +76,6 @@ const styles = (theme: Theme) =>  createStyles({
     space: {
       width: theme.spacing(3)
     }
-});
-
-const theme = (defaultTheme: Theme) => createMuiTheme({
-  overrides: {
-    MuiOutlinedInput: {
-      root: {
-        '&$root $notchedOutline': {
-          border: '1px solid',
-          borderColor: defaultTheme.palette.grey[600]
-        },
-        '&:hover:not($disabled):not($focused):not($error) $notchedOutline': {
-          border: '1px solid',
-          borderColor: defaultTheme.palette.grey[300]
-        },
-        '&$root$focused $notchedOutline': {
-          border: '1px solid',
-          borderColor: defaultTheme.palette.grey[500],
-        },
-      },
-    }
-  }
 });
 
 interface Props extends WithStyles<typeof styles>, RouteComponentProps  {}
@@ -129,8 +100,7 @@ class AppToolBar extends React.Component<Props>
     node: electron.remote.process.versions.node
   }
 
-  private _anchorEl = null as any;
-  #sortAnchor = null as any;
+  #menuAncor = null as any;
 
   constructor(props: Props)
   {
@@ -153,24 +123,10 @@ class AppToolBar extends React.Component<Props>
 
 	handleMenuClose = () => this.setState({ isPopOpen: false });
 
-  handleSortMenuOpen = () => this.setState({	isSortMenuOpen: true });
-
-  handleSortMenuClose = () => this.setState({	isSortMenuOpen: false });
-
   handleBackClick = () => this.props.history.goBack();
 
-  handleSearch(filter: string) {
-    (document.getElementById("search") as HTMLInputElement)!.value = filter;
-    (this.context as KeeData).notifySearchFilterSubscribers(filter);
-  }
-
-  handleSort(sortField: string) {
-    (this.context as KeeData).notifySortSubscribers(sortField);
-    this.setState({	isSortMenuOpen: false, sortField: sortField });
-  }
-
   render() {
-    const { classes }  = this.props;
+    const { classes, history }  = this.props;
     return(
       <>
       <AppBar position="absolute">
@@ -181,36 +137,16 @@ class AppToolBar extends React.Component<Props>
             color="inherit"
             className = {clsx(classes.button)}
             onClick={this.handleMenuOpen}
-            buttonRef={node => { this._anchorEl = node }}
+            buttonRef={node => { this.#menuAncor = node }}
           >
             <SvgPath className = {classes.icon20} path = {SystemIcon.menuThin} />
           </IconButton>
 
-          {(this.props.history.location.pathname != '/') &&
+          {(history.location.pathname != '/') &&
             <>
-              <Typography style ={{marginLeft:'auto'}}>/// {(this.context as KeeData).dbName}</Typography>
-              <MuiThemeProvider theme = {theme}>
-                <OutlinedInput
-                  id = "search"
-                  className = {classes.searchInput}
-                  onChange = {event => this.handleSearch(event.target.value)}
-                  onKeyDown = {event => event.key === 'Escape' && this.handleSearch('')}
-                  placeholder = "Search"
-                  endAdornment = {
-                    <InputAdornment position="end">
-                      <SvgPath className = {classes.icon15} path = {SystemIcon.search} />
-                    </InputAdornment>
-                  }
-                />
-              </MuiThemeProvider>
-              <IconButton
-                color="inherit"
-                className = {clsx(classes.button)}
-                buttonRef={node => { this.#sortAnchor = node }}
-                onClick = {this.handleSortMenuOpen}
-              >
-                <SvgPath className = {classes.icon20} path = {SystemIcon.sort}/>
-              </IconButton>
+              <Typography className = {classes.dbName}>/// {(this.context as KeeData).dbName}</Typography>
+              <SearchBox />
+              <SortMenu buttonClassName = {classes.button}/>
             </>
           }
 
@@ -247,7 +183,7 @@ class AppToolBar extends React.Component<Props>
 
       <Popover
         open = {this.state.isPopOpen}
-        anchorEl = {this._anchorEl}
+        anchorEl = {this.#menuAncor}
         anchorOrigin = {{vertical: 'bottom', horizontal: 'right'}}
         transformOrigin = {{vertical: 'top', horizontal: 'left'}}
         onClose = {this.handleMenuClose}
@@ -263,49 +199,6 @@ class AppToolBar extends React.Component<Props>
         </Typography>
         <Button onClick={this.handleBackClick}>Get back</Button>
       </Popover>
-
-      <Menu
-        keepMounted
-        open = {this.state.isSortMenuOpen}
-        onClose = {this.handleSortMenuClose}
-        anchorEl = {this.#sortAnchor}
-        anchorOrigin = {{vertical: 'bottom', horizontal: 'right'}}
-        transformOrigin = {{vertical: 'top', horizontal: 'left'}}
-        getContentAnchorEl = {null}
-      >
-        <MenuItem onClick = {() => this.handleSort('Title')} >
-          Sort by Title
-          <ListItemIcon style={{marginLeft: 'auto'}}>
-            { (this.state.sortField === 'Title')
-              && <SvgPath path = {SystemIcon.sortArrowAsc} style={{marginLeft: 'auto'}}/>
-            }
-          </ListItemIcon>
-        </MenuItem>
-        <MenuItem onClick = {() => this.handleSort('creationTime')}>
-          Sort by Creation Time
-          <ListItemIcon style={{marginLeft: 'auto'}}>
-            { (this.state.sortField === 'creationTime')
-              && <SvgPath path = {SystemIcon.sortArrowAsc} style={{marginLeft: 'auto'}}/>
-            }
-          </ListItemIcon>
-        </MenuItem>
-        <MenuItem onClick = {() => this.handleSort('UserName')}>
-          Sort by User Name
-          <ListItemIcon style={{marginLeft: 'auto'}}>
-            { (this.state.sortField === 'UserName')
-              && <SvgPath path = {SystemIcon.sortArrowAsc} style={{marginLeft: 'auto'}}/>
-            }
-          </ListItemIcon>
-        </MenuItem>
-        <MenuItem onClick = {() => this.handleSort('URL')}>
-          Sort by Url
-          <ListItemIcon style={{marginLeft: 'auto'}}>
-            { (this.state.sortField === 'URL')
-              && <SvgPath path = {SystemIcon.sortArrowAsc} style={{marginLeft: 'auto'}}/>
-            }
-          </ListItemIcon>
-        </MenuItem>
-      </Menu>
     </>
     );
   }

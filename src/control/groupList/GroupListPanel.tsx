@@ -11,19 +11,15 @@ import {
 } from "@material-ui/core";
 
 import {KdbxEntry, KdbxGroup, KdbxUuid } from "kdbxweb";
-import { DefaultKeeIcon, SystemIcon } from "../../entity/GlobalObject";
-import KeeData from "../../entity/KeeData";
-import { KeeDataContext } from "../../entity/Context";
-import { SvgPath } from "../common/SvgPath";
-import { LightTooltip } from "../common/LightToolTip";
-import TagSelectListItem from "./TagSelectListItem";
-import { groupListStyles } from "./groupListStyles";
-import ColorSelectListItem from "./ColorSelectListItem";
-import { formatDistance, format, compareAsc } from "date-fns";
+import {KeeData, KeeDataContext, DefaultKeeIcon, SystemIcon } from "../../entity";
+import {SvgPath, LightTooltip} from "../common";
+import {ColorSelectListItem, TagSelectListItem} from '.'
+import {groupListStyles} from "./groupListStyles"
+import {formatDistance, format, compareAsc} from "date-fns";
 
-interface Props extends WithStyles<typeof groupListStyles> {}
+interface IGroupListProps extends WithStyles<typeof groupListStyles> {}
 
-class GroupList extends React.Component<Props> {
+class GroupListPanel extends React.Component<IGroupListProps> {
   #allGroupId = 'all';
   state = {
     groups: [] as KdbxGroup[],
@@ -172,4 +168,5 @@ class GroupList extends React.Component<Props> {
   }
 }
 
-export default withStyles(groupListStyles, { withTheme: true })(GroupList);
+export default withStyles(groupListStyles, { withTheme: true })(GroupListPanel)
+

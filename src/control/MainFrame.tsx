@@ -5,7 +5,7 @@ import {
   withStyles,
   Theme,
 } from '@material-ui/core/styles';
-import AppToolBar from './AppToolBar';
+import AppToolBar from './appToolBar/AppToolBar';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
 
 const styles = (theme: Theme) => createStyles({
@@ -36,10 +36,10 @@ class MainFrame extends React.Component<Props> {
     const { classes } = this.props;
     return (
       <>
-        <div className={classes.topBar}>
+        <div className = {classes.topBar}>
           <AppToolBar />
         </div>
-        <div className={classes.mainContent} >
+        <div className = {classes.mainContent}>
           {this.props.children}
         </div>
       </>
