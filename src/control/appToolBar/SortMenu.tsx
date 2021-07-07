@@ -89,7 +89,7 @@ class SortMenu extends React.Component<Props>
               {item.displayName}
               <ListItemIcon className = {classes.menuIcon}>
                 { (this.state.sortField === item.name)
-                  && <SvgPath path = {SystemIcon.sortArrowAsc} style={{marginLeft: 'auto'}}/>
+                  && <SvgPath path = {SystemIcon.sortArrowAsc} style = {{marginLeft: 'auto'}}/>
                 }
               </ListItemIcon>
             </MenuItem>

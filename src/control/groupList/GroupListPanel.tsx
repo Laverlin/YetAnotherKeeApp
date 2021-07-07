@@ -20,11 +20,10 @@ import {formatDistance, format, compareAsc} from "date-fns";
 interface IGroupListProps extends WithStyles<typeof groupListStyles> {}
 
 class GroupListPanel extends React.Component<IGroupListProps> {
-  #allGroupId = 'all';
   state = {
     groups: [] as KdbxGroup[],
     recycleUuid: {} as KdbxUuid,
-    selectedIndex: '' as string,
+    selectedIndex: KeeData.allGroupId,
     lastUpdate: 0,
     totalEntries: 0
   }
@@ -46,10 +45,10 @@ class GroupListPanel extends React.Component<IGroupListProps> {
   handleSelectGroup(selectedGroup: KdbxGroup | null) {
     this.keeData.notifyGroupSubscribers(
       selectedGroup
-        ? selectedGroup.entries
-        : Array.from<KdbxEntry>((this.keeData.database.getDefaultGroup().allEntries()))
+        ? selectedGroup.uuid.id
+        : KeeData.allGroupId
     );
-    this.setState({selectedIndex: selectedGroup ? selectedGroup.uuid.id : this.#allGroupId});
+    this.setState({selectedIndex: selectedGroup ? selectedGroup.uuid.id : KeeData.allGroupId});
   }
 
   render()
@@ -66,7 +65,7 @@ class GroupListPanel extends React.Component<IGroupListProps> {
             <ListItem button
               className = {classes.listItem}
               onClick = {() => this.handleSelectGroup(null)}
-              selected = {selectedIndex === this.#allGroupId }
+              selected = {selectedIndex === KeeData.allGroupId}
             >
               <ListItemIcon className = {classes.icon}>
                 <SvgPath path = {SystemIcon.allItems} />
@@ -149,16 +148,19 @@ class GroupListPanel extends React.Component<IGroupListProps> {
             classes = {{primary: classes.listItemText, secondary: classes.listItemSubText}}
             primary = {group.name}
             secondary = {
-              group.entries.length === 0 ||
               <>
-                <SvgPath path = {DefaultKeeIcon.key} className = {classes.smallIcon} />
-                {group.entries.length}
-                &nbsp;&nbsp;&nbsp;&nbsp;
-                {closeExpired
-                  ? <SvgPath path = {SystemIcon.expire} className = {classes.smallIcon} />
-                  : ''
+                {group.entries.length === 0 ||
+                  <>
+                    <SvgPath path = {DefaultKeeIcon.key} className = {classes.smallIcon} />
+                    {group.entries.length}
+                    &nbsp;&nbsp;&nbsp;&nbsp;
+                    {closeExpired
+                      ? <SvgPath path = {SystemIcon.expire} className = {classes.smallIcon} />
+                      : ''
+                    }
+                    {closeExpired && format(closeExpired, 'dd MMM yyyy')}
+                  </>
                 }
-                {closeExpired && format(closeExpired, 'dd MMM yyyy')}
               </>
             }
           />

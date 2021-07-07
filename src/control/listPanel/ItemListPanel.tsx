@@ -1,13 +1,12 @@
 import clsx from "clsx";
 import React from "react";
-import { createStyles, darken, Divider, ListItemIcon, Menu, MenuItem, Paper, Theme, Tooltip,  Typography,  withStyles, WithStyles} from "@material-ui/core";
+import { createStyles, darken, Paper, Theme, Typography,  withStyles, WithStyles} from "@material-ui/core";
 
 import { KdbxEntry, ProtectedValue} from "kdbxweb";
-import { DefaultFields, DefaultKeeIcon, SystemIcon } from "../entity/GlobalObject";
-import { KeeDataContext } from "../entity/Context";
-import KeeData from "../entity/KeeData";
-import { SvgPath } from "./common/SvgPath";
-import { scrollBar } from "./common/commonStyle";
+import { KeeData, KeeDataContext, DefaultFields, DefaultKeeIcon, SystemIcon } from "../../entity";
+import { scrollBar, SvgPath, LightTooltip } from "../common";
+import { compareAsc } from "date-fns";
+import { ContextMenu } from "./ContextMenu";
 
 const styles = (theme: Theme) =>  createStyles({
   list: {
@@ -59,7 +58,7 @@ const styles = (theme: Theme) =>  createStyles({
     position:'relative',
     display:'flex',
     flexDirection:'row',
-    height:86,
+    height: theme.spacing(9 + 1/2),
     borderBottom:'1px dotted lightgray',
     "&:hover": {
       backgroundColor: theme.palette.background.default
@@ -74,7 +73,10 @@ const styles = (theme: Theme) =>  createStyles({
   },
 
   mainIconDiv: {
-    width:50, height:50, margin:16, display:'flex'
+    width: 50,
+    height: 50,
+    margin: 16,
+    display:'flex'
   },
 
   mainIconContent: {
@@ -84,20 +86,21 @@ const styles = (theme: Theme) =>  createStyles({
   },
 
   flexAlignRight: {
-    marginLeft: 'auto'
+    marginLeft: 'auto',
+    marginRight: theme.spacing(1)
   },
 
   itemContent: {
-    display:'flex',
-    flexDirection:'column',
-    width:'100%',
-    minWidth:0
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
+    minWidth: 0
   },
 
   itemContentRow: {
     display:'flex',
     flexDirection:'row',
-    minWidth:0,
+    minWidth: 0,
     paddingRight: theme.spacing(1),
   },
 
@@ -123,17 +126,14 @@ const styles = (theme: Theme) =>  createStyles({
     paddingTop: theme.spacing(1/2),
     paddingBottom: theme.spacing(1/2),
   },
+
+  emptySplash: {
+    width: '100%',
+    textAlign: 'center',
+    marginTop: theme.spacing(7),
+    color: theme.palette.action.disabled
+  }
 });
-
-const LightTooltip = withStyles((theme: Theme) => ({
-  tooltip: {
-    backgroundColor: theme.palette.common.white,
-    color: theme.palette.text.primary,
-    boxShadow: theme.shadows[1],
-    fontSize: theme.typography.pxToRem(12),
-  },
-}))(Tooltip);
-
 
 interface Props extends WithStyles<typeof styles> {}
 
@@ -141,18 +141,16 @@ class ItemListPanel extends React.Component<Props> {
   static contextType = KeeDataContext;
 
   state = {
-    entries: [] as KdbxEntry[] | undefined,
+    entries: [] as KdbxEntry[],
     selectedEntryId: '',
     filterString: '',
     copiedFileld: '',
-    isContextMenuOpen: false,
-    mouseX: 0,
-    mouseY: 0,
-    selectedEntry: undefined as KdbxEntry | undefined,
     sortField: 'Title',
     colorFilter: '',
     selectedTags: [] as string[]
   }
+
+  #contextMenuRef = React.createRef<ContextMenu>();
 
   constructor(props : Props){
     super(props);
@@ -160,21 +158,20 @@ class ItemListPanel extends React.Component<Props> {
     this.handleSearchUpdate = this.handleSearchUpdate.bind(this);
     this.handleSortUpdate = this.handleSortUpdate.bind(this);
     this.handleContextMenuOpen = this.handleContextMenuOpen.bind(this);
-    this.handleContextMenuClose = this.handleContextMenuClose.bind(this);
     this.handleCopy = this.handleCopy.bind(this);
     this.handleColorFilter = this.handleColorFilter.bind(this);
     this.handleTagFilter = this.handleTagFilter.bind(this);
+    this.showCopyNotify = this.showCopyNotify.bind(this);
   }
 
   componentDidMount() {
     const keeData = (this.context as KeeData);
     keeData.addGroupListener(this.handleGroupUpdate);
-    const entities = keeData.database.getDefaultGroup().entries;
-    this.setState({entries: Array.from(entities)});
     keeData.addSearchFilterListener(this.handleSearchUpdate);
     keeData.addSortListener(this.handleSortUpdate);
     keeData.addColorFilterListener(this.handleColorFilter);
     keeData.addTagFilterListener(this.handleTagFilter);
+    this.handleGroupUpdate(keeData.selectedGroupId);
   }
 
   componentWillUnmount() {
@@ -194,7 +191,14 @@ class ItemListPanel extends React.Component<Props> {
     this.setState({sortField: sortField});
   }
 
-  handleGroupUpdate(entries: KdbxEntry[]) {
+  handleGroupUpdate(groupId: string) {
+    if (groupId === KeeData.allGroupId) {
+      this.setState({entries: Array.from<KdbxEntry>(
+        ((this.context as KeeData).database.getDefaultGroup().allEntries()))});
+      return;
+    }
+    const selectedGroup = (this.context as KeeData).database.getGroup(groupId);
+    const entries = selectedGroup ? selectedGroup.entries : [];
     this.setState({entries: entries});
   }
 
@@ -225,40 +229,24 @@ class ItemListPanel extends React.Component<Props> {
 
   handleCopy(
     fieldName: string,
-    event: React.MouseEvent<Element, MouseEvent>,
-    entry: KdbxEntry | undefined = undefined
+    entry: KdbxEntry,
+    event?: React.MouseEvent<Element, MouseEvent>
   ): void {
-    event.stopPropagation();
-    entry = entry ?? this.state.selectedEntry;
-    if (!entry) {
-      return;
-    }
+    event?.stopPropagation();
     const field = entry.fields.get(fieldName);
     if (field) {
-      const copyText = (fieldName === 'Password')
-        ? (field  as ProtectedValue).getText()
+      const copyText = (field instanceof ProtectedValue)
+        ? field.getText()
         : field.toString();
       navigator.clipboard.writeText(copyText);
-      this.setState({
-        copiedFileld: DefaultFields[fieldName as keyof typeof DefaultFields],
-        isContextMenuOpen: false
-      });
+      this.setState({ copiedFileld: DefaultFields[fieldName as keyof typeof DefaultFields] });
       this.showCopyNotify(entry.uuid.id);
     }
   }
 
   handleContextMenuOpen(event: React.MouseEvent<HTMLDivElement>, entry: KdbxEntry) {
     event.preventDefault();
-    this.setState({
-      isContextMenuOpen: true,
-      mouseX: event.clientX,
-      mouseY: event.clientY,
-      selectedEntry: entry,
-    });
-  }
-
-  handleContextMenuClose() {
-    this.setState({isContextMenuOpen: false});
+    this.#contextMenuRef?.current?.handleContextMenuOpen(event, entry);
   }
 
   filter(entry: KdbxEntry, filterString: string, selectedTag: string[]): boolean {
@@ -271,7 +259,6 @@ class ItemListPanel extends React.Component<Props> {
     if (this.state.selectedTags.length > 0) {
       filter = filter && entry.tags.filter(i => selectedTag.includes(i)).length > 0
     }
-
     return filter;
   }
 
@@ -280,7 +267,7 @@ class ItemListPanel extends React.Component<Props> {
       const timeA = entryA.times.creationTime;
       const timeB = entryB.times.creationTime;
       if (!timeA || !timeB) {return -1}
-      return  (timeA.valueOf() - timeB.valueOf());
+      return  compareAsc(timeA, timeB);
     }
     const fieldA = entryA.fields.get(sortingField);
     const fieldB = entryB.fields.get(sortingField);
@@ -296,20 +283,25 @@ class ItemListPanel extends React.Component<Props> {
     const { classes } = this.props;
     const { entries, filterString, selectedTags } = this.state;
 
+    if (entries.length === 0) {
+      return (<Typography variant='h2' className = {classes.emptySplash}>No entries</Typography>)
+    }
+
     return (
       <>
         <div className = {clsx(classes.list, classes.scrollBar)}>
-          {entries?.filter(entry => this.filter(entry, filterString, selectedTags))
+          {entries.filter(entry => this.filter(entry, filterString, selectedTags))
             .sort((a, b) => this.sort(a, b, this.state.sortField))
             .map((entry) =>
             <LightTooltip
               key = {entry.uuid.id}
               title = {
                 entry.fields.get('Notes')
-                  ? <React.Fragment> {entry.fields.get('Notes')} </React.Fragment>
+                  ? <> {entry.fields.get('Notes')} </>
                   : ""
               }
             >
+
               <div
                 onClick = {() => this.handleClick(entry)}
                 onContextMenu = {event => this.handleContextMenuOpen(event, entry)}
@@ -317,16 +309,16 @@ class ItemListPanel extends React.Component<Props> {
                   clsx(classes.listItem, (this.state.selectedEntryId === entry.uuid.id) && classes.listItemSelected)
                 }
               >
+                <div style={{width:'8px', background: entry.bgColor }}/>
                 <div
                   className = {clsx(classes.mainIconDiv, classes.copyCursor)}
-                  onDoubleClick = {event => this.handleCopy('Password', event, entry)}
+                  onDoubleClick = {event => this.handleCopy('Password', entry, event)}
                 >
                   {entry.customIcon && !entry.customIcon.empty
                     ? <img
                         className = {classes.mainIconContent}
-                        src={(this.context as KeeData).getCustomIcon(entry.customIcon.id)}
-                      >
-                      </img>
+                        src = {(this.context as KeeData).getCustomIcon(entry.customIcon.id)}
+                      />
                     : <SvgPath className = {classes.mainIconContent} path = {DefaultKeeIcon.get(entry.icon ?? 0)} />
                   }
 
@@ -334,7 +326,7 @@ class ItemListPanel extends React.Component<Props> {
                 <div className = {classes.itemContent}>
                   <div className = {classes.itemContentRow}>
                     <div className={classes.title}>
-                      {entry.fields.get('Title') === '' ? "(No Title)" : entry.fields.get('Title')}
+                      {!entry.fields.get('Title') ? "(No Title)" : entry.fields.get('Title')}
                     </div>
                     {entry.times.expires &&
                       <div className={clsx(classes.titleSecondary, classes.flexAlignRight)}>
@@ -345,31 +337,31 @@ class ItemListPanel extends React.Component<Props> {
                   </div>
                   <div className = {classes.itemContentRow}>
                     <div className={classes.titleSecondary}>
-                      { entry.fields.get('UserName') !== '' &&
+                      { entry.fields.get('UserName') &&
                         <>
                           <SvgPath
                             className={clsx(classes.inlineLeftIcon, classes.copyCursor)}
                             path = {SystemIcon.user}
-                            onDoubleClick = {event => this.handleCopy('UserName', event, entry)}
+                            onDoubleClick = {event => this.handleCopy('UserName', entry, event)}
                           />
                           {entry.fields.get('UserName')}
+                          &nbsp;&nbsp;&nbsp;&nbsp;
+                        </>
+                      }
+                      { entry.fields.get('URL') &&
+                        <>
+                          <SvgPath
+                            className={clsx(classes.inlineLeftIcon, classes.copyCursor)}
+                            path = {DefaultKeeIcon.link}
+                            onDoubleClick = {event => this.handleCopy('URL', entry, event)}
+                          />
+                          {entry.fields.get('URL')}
                         </>
                       }
                     </div>
 
                   </div>
-                  <div className={classes.titleSecondary}>
-                    { entry.fields.get('URL') !== '' &&
-                      <>
-                        <SvgPath
-                          className={clsx(classes.inlineLeftIcon, classes.copyCursor)}
-                          path = {DefaultKeeIcon.link}
-                          onDoubleClick = {event => this.handleCopy('URL', event, entry)}
-                        />
-                        {entry.fields.get('URL')}
-                      </>
-                    }
-                  </div>
+
                   <div className={clsx(classes.titleSecondary, classes.itemContentLastRow)} >
                     { entry.tags.length > 0 &&
                       <>
@@ -380,8 +372,8 @@ class ItemListPanel extends React.Component<Props> {
                   </div>
                   <Paper
                     id = {'notify-' + entry.uuid.id}
-                    className={classes.notifyBase}
-                    onTransitionEnd={() => this.hideCopyNotify(entry.uuid.id)}
+                    className = {classes.notifyBase}
+                    onTransitionEnd = {() => this.hideCopyNotify(entry.uuid.id)}
                   >
                     <Typography>
                       {this.state.copiedFileld} copied
@@ -391,44 +383,15 @@ class ItemListPanel extends React.Component<Props> {
                 <div className = {classes.itemAttachIcon}>
                   { entry.binaries.size > 0 && <SvgPath path = {SystemIcon.attachFile} /> }
                 </div>
-                <div style={{width:'8px', backgroundColor: entry.bgColor}}/>
+
               </div>
             </LightTooltip>
           )}
         </div>
-        <Menu
-          keepMounted
-          open = {this.state.isContextMenuOpen}
-          onClose = {this.handleContextMenuClose}
-          anchorReference = "anchorPosition"
-          anchorPosition = {{ top: this.state.mouseY, left: this.state.mouseX }}
-        >
-          <MenuItem onClick = {event => this.handleCopy('Password', event)}>
-            <ListItemIcon>
-              <SvgPath path = {DefaultKeeIcon.key}/>
-            </ListItemIcon>
-            Copy Password
-          </MenuItem>
-          <MenuItem onClick = {event => this.handleCopy('UserName', event)}>
-            <ListItemIcon>
-              <SvgPath path = {SystemIcon.user}/>
-            </ListItemIcon>
-            Copy User Name
-          </MenuItem>
-          <MenuItem onClick = {event => this.handleCopy('URL', event)}>
-            <ListItemIcon>
-              <SvgPath path = {DefaultKeeIcon.link} />
-            </ListItemIcon>
-            Copy Url
-          </MenuItem>
-          <Divider/>
-          <MenuItem onClick={this.handleContextMenuClose}>Go to Url</MenuItem>
-          <MenuItem onClick={this.handleContextMenuClose}>Auto-Type</MenuItem>
-        </Menu>
+        <ContextMenu ref = {this.#contextMenuRef} handleCopy = {this.handleCopy} />
       </>
     )
   }
-
 }
 
 export default withStyles(styles, { withTheme: true })(ItemListPanel);

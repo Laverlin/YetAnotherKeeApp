@@ -9,12 +9,16 @@ export default class KeeData {
   #password: ProtectedValue = ProtectedValue.fromString('');
   #database: Kdbx | undefined = undefined;
 
-  #groupListeners = [] as {(entries: KdbxEntry[]): void} [];
+  #groupListeners = [] as {(groupId: string): void} [];
   #entryListeners = [] as {(entry: KdbxEntry): void} [];
   #searchFilterListeners = [] as {(query: string): void} [];
   #sortListeners = [] as {(sortField: string): void} [];
   #colorFilterListeners = [] as {(colorFilter: string): void} [];
   #tagFilterListeners = [] as {(selectedTags: string[]): void} [];
+
+  static allGroupId = 'all'
+
+  #selectedGroupId = KeeData.allGroupId;
 
   // Set path to database file
   //
@@ -75,7 +79,9 @@ export default class KeeData {
 
   // return ID of special folder for trash
   //
-  get recycleBinUuid(){ return this.database.meta.recycleBinUuid }
+  get recycleBinUuid() {return this.database.meta.recycleBinUuid}
+
+  get selectedGroupId() {return this.#selectedGroupId}
 
   get tags(): string[] {
      let tags: string[] = [];
@@ -87,20 +93,20 @@ export default class KeeData {
 
   // Add listener for event if group has changed
   //
-  addGroupListener(listener : {(entries: KdbxEntry[]):void}) {
+  addGroupListener(listener : {(groupId: string): void}) {
     this.#groupListeners.push(listener);
   }
 
-  removeGroupListener(listener : {(entries: KdbxEntry[]): void}){
+  removeGroupListener(listener : {(groupId: string): void}){
     this.#groupListeners = this.#groupListeners.filter(item => listener !== item);
   }
 
   // notify all subscribers that group has changed
-  // provides the list of entries in the new group
   //
-  notifyGroupSubscribers(entries: KdbxEntry[]) {
-    if (entries) {
-      this.#groupListeners.forEach(listener => listener(entries));
+  notifyGroupSubscribers(groupId: string) {
+    if (groupId) {
+      this.#selectedGroupId = groupId;
+      this.#groupListeners.forEach(listener => listener(groupId));
     }
   }
 
