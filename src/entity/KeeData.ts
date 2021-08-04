@@ -43,14 +43,25 @@ export default class KeeData {
 
   // Load data from kdbx file
   //
-  async loadDb()
-  {
+  async loadDb() {
     if (!this.#path) {
       throw 'Path is not initialized';
     }
     const data = await fs.promises.readFile(this.#path);
     const credentials = new Credentials(this.#password, null);
     this.#database = await Kdbx.load(new Uint8Array(data).buffer, credentials);
+  }
+
+  async saveDb() {
+    if (!this.#database) {
+      throw new Error('Nothing to save, db is needed');
+    }
+    if (!this.#path){
+      throw new Error('Nowhere to save, path is needed');
+    }
+
+    let db = await this.#database.save();
+    fs.writeFileSync(this.#path, Buffer.from(db));
   }
 
   // Return data from loaded file

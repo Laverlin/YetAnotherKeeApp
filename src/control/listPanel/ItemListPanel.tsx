@@ -284,7 +284,7 @@ class ItemListPanel extends React.Component<Props> {
     const { entries, filterString, selectedTags } = this.state;
 
     if (entries.length === 0) {
-      return (<Typography variant='h2' className = {classes.emptySplash}>No entries</Typography>)
+      return (<Typography variant='h2' className = {classes.emptySplash}>No Items</Typography>)
     }
 
     return (

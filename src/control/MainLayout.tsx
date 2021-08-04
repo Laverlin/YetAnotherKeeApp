@@ -7,7 +7,7 @@ import {
 } from '@material-ui/core/styles';
 import {GroupListPanel} from './groupList';
 import ItemListPanel from './listPanel/ItemListPanel';
-import ItemDetailPanel from './ItemDetailPanel';
+import ItemDetailPanel from './detailPanel/ItemDetailPanel';
 
 class DraggerPosition {
   position: number;
