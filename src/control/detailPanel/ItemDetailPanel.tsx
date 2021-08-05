@@ -138,6 +138,7 @@ class ItemDetailPanel extends Component<Props> {
     this.handleUpdateEntry = this.handleUpdateEntry.bind(this);
     this.handleUpdateGroup = this.handleUpdateGroup.bind(this);
     this.handleInputChange = this.handleInputChange.bind(this);
+    this.updateEntityInfo = this.updateEntityInfo.bind(this);
   }
 
   async componentDidMount() {
@@ -152,7 +153,10 @@ class ItemDetailPanel extends Component<Props> {
     keeData.removeGroupListener(this.handleUpdateGroup);
   }
 
-  savePrevChanges(prevEntry: KdbxEntry | KdbxGroup | undefined) {
+  // update entity information, to track changes later
+  //
+  updateEntityInfo(){
+    const prevEntry = this.state.entry;
     if (!prevEntry) {
       return
     }
@@ -161,21 +165,8 @@ class ItemDetailPanel extends Component<Props> {
         prevEntry.pushHistory();
       }
     }
-
-    if (prevEntry instanceof KdbxGroup) {
-      prevEntry.name = this.state.inputFields.get('Title') as string
-      prevEntry.notes = this.state.inputFields.get('Notes') as string
-    }
-
-    prevEntry.tags = this.state.tags;
-    prevEntry.times.expires = !!this.state.expireTime;
-    prevEntry.times.expiryTime = this.state.expireTime;
-
     prevEntry.times.update();
-  }
-
-  componentDidUpdate() {
-    this.savePrevChanges(this.state.entry);
+    (this.context as KeeData).notifyDbUpdateSubscribers(true);
   }
 
   handleUpdateEntry(entry: KdbxEntry){
@@ -188,42 +179,53 @@ class ItemDetailPanel extends Component<Props> {
     this.setState({historyLength: entry.history.length});
   }
 
-  handleInputChange(fieldId: string, inputValue: string, isProtected: boolean) {
-    let kdbxValue = isProtected ? ProtectedValue.fromString(inputValue) : inputValue;
-    this.state.inputFields.set(fieldId, kdbxValue);
-    this.setState({inputFields: this.state.inputFields});
-  }
-
   handleUpdateGroup(groupId: string){
     const entry = (this.context as KeeData).database.getGroup(groupId);
     if (!entry) {
       return
     }
 
+    this.setState({entry: entry});
     this.setState({inputFields: new Map<string, KdbxEntryField>([
       ['Title', entry.name as string],
       ['Notes', entry.notes as string]
     ])})
-
-    this.setState({entry: entry});
     this.setState({tags: entry.tags});
     this.setState({expireTime: entry.times.expiryTime});
     this.setState({isExpired: entry.times.expires})
   }
 
+  handleInputChange(fieldId: string, inputValue: string, isProtected: boolean) {
+    this.updateEntityInfo();
+    let kdbxValue = isProtected ? ProtectedValue.fromString(inputValue) : inputValue;
+    this.state.inputFields.set(fieldId, kdbxValue);
+    this.setState({inputFields: this.state.inputFields});
+    if (this.state.entry instanceof KdbxGroup) {
+      this.state.entry.name = this.state.inputFields.get('Title') as string
+      this.state.entry.notes = this.state.inputFields.get('Notes') as string
+    }
+  }
+
+
+
   handleTagsChange = (_: any, values: string[]) => {
-    this.setState({tags: values });
+    this.updateEntityInfo();
+    this.state.entry!.tags = values;
+    this.forceUpdate();
   }
 
   handleDateChange = (date: MaterialUiPickersDate) => {
-    this.setState({ isExpired: true, expireTime: date });
+    this.updateEntityInfo();
+    this.setState({ isExpired: !!date, expireTime: date });
+    this.state.entry!.times.expires = !!date;
+    if (date) {
+      this.state.entry!.times!.expiryTime = date;
+    }
   }
-
-  handleClickShowPassword = () => this.setState({isShowPassword: !this.state.isShowPassword});
 
   render(){
     const { classes }  = this.props;
-    const {entry } = this.state;
+    const { entry } = this.state;
 
     const fieldInfos = new Map<string, FieldInfo>([
       ['Title', {sortOrder: -5} as FieldInfo],
@@ -233,11 +235,9 @@ class ItemDetailPanel extends Component<Props> {
       ['Notes', {sortOrder: 100, isMultiline: true} as FieldInfo]
     ]);
 
-    if (!entry)
-    {
+    if (!entry) {
       return (<Typography variant='h2' className = {classes.emptySplash}>Select Item to View</Typography>);
     }
-
 
     return (
 
@@ -266,14 +266,12 @@ class ItemDetailPanel extends Component<Props> {
           }
         </div>
 
-
-
         <div className = {clsx(classes.entityItems, classes.scrollBar)} >
 
           {Array.from(this.state.inputFields)
             .filter(f => f[0] !== 'Title')
             .map(field => {
-              let info = (fieldInfos.get(field[0]) ? fieldInfos.get(field[0]) : {sortOrder:0} as FieldInfo)
+              let info = (fieldInfos.get(field[0]) ? fieldInfos.get(field[0]) : {sortOrder: 0} as FieldInfo)
               return {...field, ...info}
             })
             .sort((a, b) => a.sortOrder as number - (b.sortOrder as number))
@@ -294,12 +292,12 @@ class ItemDetailPanel extends Component<Props> {
               freeSolo
               id = "tags"
               options = {(this.context as KeeData).tags ?? []}
-              value = {this.state.tags ?? []}
+              value = {entry.tags ?? []}
               onChange = {this.handleTagsChange}
               size = "small"
               PaperComponent={({ children }) => (
                 <Paper variant='elevation' className = {classes.scrollBar}>
-                    {children}
+                  {children}
                 </Paper>
               )}
               renderTags = {(value: string[], getTagProps) =>
@@ -332,7 +330,7 @@ class ItemDetailPanel extends Component<Props> {
             </div>
 
             {entry instanceof KdbxEntry &&
-              <AttachInput entry = {entry} />
+              <AttachInput entry = {entry} updateEntityInfo = {this.updateEntityInfo} />
             }
           </div>
 

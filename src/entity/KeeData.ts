@@ -9,6 +9,7 @@ export default class KeeData {
   #password: ProtectedValue = ProtectedValue.fromString('');
   #database: Kdbx | undefined = undefined;
 
+  #dbUpdateListeners = [] as {(isUpdated: boolean): void} [];
   #groupListeners = [] as {(groupId: string): void} [];
   #entryListeners = [] as {(entry: KdbxEntry): void} [];
   #searchFilterListeners = [] as {(query: string): void} [];
@@ -100,6 +101,18 @@ export default class KeeData {
        tags = tags.concat(e.tags);
      }
      return [...new Set(tags)];
+  }
+
+  addDbUpdateListener(listener: {(isUpdated: boolean): void}){
+    this.#dbUpdateListeners.push(listener);
+  }
+
+  removeDbUpdateListener(listener: {(isUpdated: boolean): void}){
+    this.#dbUpdateListeners = this.#dbUpdateListeners.filter(item => listener !== item);
+  }
+
+  notifyDbUpdateSubscribers(isUpdated: boolean) {
+    this.#dbUpdateListeners.forEach(listener => listener(isUpdated));
   }
 
   // Add listener for event if group has changed

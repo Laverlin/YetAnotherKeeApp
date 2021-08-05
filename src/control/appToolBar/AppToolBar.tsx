@@ -40,6 +40,15 @@ const styles = (theme: Theme) =>  createStyles({
       padding:'16px'
     },
 
+    buttonDisabled: {
+      height: theme.customSize.topBar.height,
+      width: 46,
+      borderRadius: 0,
+      padding:'16px',
+      color: theme.palette.grey.A200
+    },
+
+
     buttonClose: {
       "&:hover": {
         backgroundColor: '#D70012'
@@ -61,8 +70,11 @@ const styles = (theme: Theme) =>  createStyles({
     },
 
     dbName: {
-      marginLeft: 'auto',
       color: theme.palette.grey.A100
+    },
+
+    pushRight: {
+      marginLeft: 'auto',
     },
 
     aboutPaper: {
@@ -90,7 +102,8 @@ class AppToolBar extends React.Component<Props>
     isMaximized: electron.remote.getCurrentWindow().isMaximized(),
     isPopOpen: false,
     isSortMenuOpen: false,
-    sortField: 'Title'
+    sortField: 'Title',
+    isDbUpdated: false
   }
 
   info = {
@@ -106,6 +119,21 @@ class AppToolBar extends React.Component<Props>
   {
     super(props);
     this.handleMaximizeWindow = this.handleMaximizeWindow.bind(this);
+    this.updateListener = this.updateListener.bind(this);
+    this.handleSave = this.handleSave.bind(this);
+  }
+
+  componentDidMount() {
+    (this.context as KeeData).addDbUpdateListener(this.updateListener);
+  }
+
+  componentWillUnmount() {
+    (this.context as KeeData).removeDbUpdateListener(this.updateListener);
+  }
+
+  updateListener(isUpdated: boolean) {
+    this.setState({isDbUpdated: isUpdated});
+    console.log(this.state.isDbUpdated);
   }
 
   handleMaximizeWindow() {
@@ -125,6 +153,11 @@ class AppToolBar extends React.Component<Props>
 
   handleBackClick = () => this.props.history.goBack();
 
+  async handleSave() {
+    await (this.context as KeeData).saveDb();
+    this.setState({isDbUpdated: false});
+  }
+
   render() {
     const { classes, history }  = this.props;
     return(
@@ -134,17 +167,27 @@ class AppToolBar extends React.Component<Props>
         <Toolbar className = {classes.appBar}>
           <div className = {classes.resizer} />
           <IconButton
-            color="inherit"
+            color = "inherit"
             className = {clsx(classes.button)}
-            onClick={this.handleMenuOpen}
-            buttonRef={node => { this.#menuAncor = node }}
+            onClick = {this.handleMenuOpen}
+            buttonRef = {node => { this.#menuAncor = node }}
           >
             <SvgPath className = {classes.icon20} path = {SystemIcon.menuThin} />
           </IconButton>
 
           {(history.location.pathname != '/') &&
             <>
-              <Typography className = {classes.dbName}>/// {(this.context as KeeData).dbName}</Typography>
+              <IconButton
+                color = "inherit"
+                className = {clsx(classes.pushRight, this.state.isDbUpdated ? classes.button : classes.buttonDisabled)}
+                onClick = {this.handleSave}
+              >
+                <SvgPath className = {classes.icon20} path = {SystemIcon.save} />
+              </IconButton>
+              <Typography className = {classes.dbName}> {(this.context as KeeData).dbName}</Typography>
+              <div style={{width:'30px'}}>
+              {this.state.isDbUpdated && <Typography variant='h5'>&nbsp;*</Typography>}
+              </div>
               <SearchBox />
               <SortMenu buttonClassName = {classes.button}/>
             </>

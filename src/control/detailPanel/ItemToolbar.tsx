@@ -39,17 +39,7 @@ class ItemToolbar extends React.Component<IItemToolbarProps> {
   }
 
   async handleSave() {
-    const { updatedFields, currentEntry, keeData } = this.props;
-    if (currentEntry instanceof KdbxEntry){
-   //   currentEntry.pushHistory();
-    } else if (currentEntry instanceof KdbxGroup){
-      currentEntry.name = updatedFields.get('Title') as string
-      currentEntry.notes = updatedFields.get('Notes') as string
-    }
-    //currentEntry.times.update();
 
-    console.log(currentEntry);
-    await keeData.saveDb();
   }
 
   public render() {

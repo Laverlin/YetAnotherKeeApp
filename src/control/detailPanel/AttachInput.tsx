@@ -67,7 +67,8 @@ const styles = (theme: Theme) =>  createStyles({
 })
 
 interface IAttachInputProps extends WithStyles<typeof styles> {
-  entry: KdbxEntry
+  entry: KdbxEntry,
+  updateEntityInfo: {(): void}
 }
 
 class AttachInput extends React.Component<IAttachInputProps> {
@@ -77,8 +78,6 @@ class AttachInput extends React.Component<IAttachInputProps> {
     this.handleDeleteAttachment = this.handleDeleteAttachment.bind(this);
     this.handleSaveAttachment = this.handleSaveAttachment.bind(this);
 
-    this.state = {
-    }
   }
 
   handleAddAttachment() {
@@ -86,15 +85,18 @@ class AttachInput extends React.Component<IAttachInputProps> {
     if (!files){
       return
     }
+    this.props.updateEntityInfo();
     files.forEach(file => {
       const buffer = fs.readFileSync(file);
       const binary: KdbxBinary = new Uint8Array(buffer).buffer;
       this.props.entry.binaries.set(path.basename(file), binary);
     })
+
     this.forceUpdate();
   }
 
   handleDeleteAttachment(key: string) {
+    this.props.updateEntityInfo();
     this.props.entry.binaries.delete(key);
     this.forceUpdate();
   }
@@ -138,7 +140,7 @@ class AttachInput extends React.Component<IAttachInputProps> {
           {entry.binaries.size === 0 &&
 
             <div className = {clsx(classes.ellipsis, classes.emptySplash)}>
-              No attachments
+              No Attachments
             </div>
 
           }
