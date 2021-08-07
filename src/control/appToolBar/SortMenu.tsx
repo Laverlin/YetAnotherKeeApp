@@ -5,6 +5,7 @@ import {
   ListItemIcon,
   Menu,
   MenuItem,
+  Tooltip,
   withStyles,
   WithStyles
 } from "@material-ui/core";
@@ -66,15 +67,16 @@ class SortMenu extends React.Component<Props>
 
     return (
       <>
-        <IconButton
-          color="inherit"
-          className = {buttonClassName}
-          buttonRef = {node => { this.#sortAnchor = node }}
-          onClick = {() => this.setState({isSortMenuOpen: true})}
-        >
-          <SvgPath className = {classes.icon20} path = {SystemIcon.sort}/>
-        </IconButton>
-
+        <Tooltip title = 'Sort'>
+          <IconButton
+            color="inherit"
+            className = {buttonClassName}
+            buttonRef = {node => { this.#sortAnchor = node }}
+            onClick = {() => this.setState({isSortMenuOpen: true})}
+          >
+            <SvgPath className = {classes.icon20} path = {SystemIcon.sort}/>
+          </IconButton>
+        </Tooltip>
         <Menu
           keepMounted
           open = {this.state.isSortMenuOpen}

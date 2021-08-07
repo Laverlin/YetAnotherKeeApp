@@ -89,6 +89,7 @@ export default class KeeData {
     return '';
   }
 
+
   // return ID of special folder for trash
   //
   get recycleBinUuid() {return this.database.meta.recycleBinUuid}

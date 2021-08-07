@@ -15,8 +15,8 @@ import Autocomplete from '@material-ui/lab/Autocomplete';
 import {
   Chip,
   createStyles,
+  IconButton,
   Input,
-  Paper,
   TextField,
   Theme,
   Typography,
@@ -33,6 +33,8 @@ import ItemToolbar from "./ItemToolbar";
 import ItemInfoCard from "./ItemInfoCard";
 import FieldInput from "./FieldInput";
 import AttachInput from "./AttachInput";
+import IconChoicePanel from "./IconChoicePanel";
+import ColorChoicePanel from "./ColorChoicePanel";
 
 const styles = (theme: Theme) =>  createStyles({
 
@@ -56,6 +58,11 @@ const styles = (theme: Theme) =>  createStyles({
     height: theme.spacing(4),
     margin: theme.spacing(2),
     paddingTop: 4
+  },
+  titleIconButton:{
+    width: theme.spacing(8),
+    height: theme.spacing(8),
+    marginLeft: theme.spacing(2)
   },
 
   titleFlagIcon:{
@@ -100,14 +107,12 @@ const styles = (theme: Theme) =>  createStyles({
     width:'100%'
   },
 
-
-
   emptySplash: {
     width: '100%',
     textAlign: 'center',
     marginTop: theme.spacing(7),
     color: theme.palette.action.disabled
-  }
+  },
 
 });
 
@@ -130,8 +135,12 @@ class ItemDetailPanel extends Component<Props> {
     expireTime: undefined as Date | undefined,
     isExpired: false,
     inputFields: new Map<string, KdbxEntryField>(),
-    historyLength: 0
+    historyLength: 0,
+    isIconPanelOpen: false,
+    isColorPanelOpen: false
   }
+  #iconPanelAncor: Element | null = null
+  #colorPanelAncor: Element | null = null
 
   constructor(props : Props) {
     super(props);
@@ -243,13 +252,20 @@ class ItemDetailPanel extends Component<Props> {
 
       <form noValidate autoComplete="off" >
         <div className = {classes.itemTitle}>
-          {entry.customIcon && !entry.customIcon.empty
-            ? <img
-                className={classes.titleIcon}
-                src={(this.context as KeeData).getCustomIcon(entry.customIcon.id)}>
-              </img>
-            : <SvgPath className = {classes.titleIcon} path = {DefaultKeeIcon.get(this.state.entry?.icon ?? 0)} />
-          }
+
+          <IconButton
+            className = {classes.titleIconButton}
+            ref = {node => { this.#iconPanelAncor = node }}
+            onClick = {() => this.setState({isIconPanelOpen: true})}
+          >
+            {entry.customIcon && !entry.customIcon.empty
+              ? <img
+                  className = {classes.titleIcon}
+                  src={(this.context as KeeData).getCustomIcon(entry.customIcon.id)}>
+                </img>
+              : <SvgPath className = {classes.titleIcon} path = {DefaultKeeIcon.get(this.state.entry?.icon ?? 0)} />
+            }
+          </IconButton>
           <Input id = "Title"
             value = {this.state.inputFields.get("Title")}
             fullWidth
@@ -258,11 +274,19 @@ class ItemDetailPanel extends Component<Props> {
             inputProps = {{className: clsx(classes.titleStyle, classes.ellipsis)}}
             onChange = {e => this.handleInputChange("Title", e.target.value, false)}
           />
-          { entry instanceof KdbxEntry && entry.bgColor === ''
-            ? <SvgPath className={classes.titleFlagIcon} path = {SystemIcon.colorEmpty} />
-            : <SvgPath className={classes.titleFlagIcon} path = {SystemIcon.colorFilled}
-                style={{color: (entry as KdbxEntry).bgColor}}
-              />
+          {entry instanceof KdbxEntry &&
+            <IconButton
+              className = {classes.titleIconButton}
+              onClick = {() => this.setState({isColorPanelOpen: true})}
+              ref = {node => { this.#colorPanelAncor = node }}
+            >
+            { !entry.bgColor
+              ? <SvgPath className={classes.titleFlagIcon} path = {SystemIcon.colorEmpty} />
+              : <SvgPath className={classes.titleFlagIcon} path = {SystemIcon.colorFilled}
+                  style={{color: (entry as KdbxEntry).bgColor}}
+                />
+            }
+            </IconButton>
           }
         </div>
 
@@ -295,11 +319,8 @@ class ItemDetailPanel extends Component<Props> {
               value = {entry.tags ?? []}
               onChange = {this.handleTagsChange}
               size = "small"
-              PaperComponent={({ children }) => (
-                <Paper variant='elevation' className = {classes.scrollBar}>
-                  {children}
-                </Paper>
-              )}
+              fullWidth
+              classes = {{listbox: classes.scrollBar}}
               renderTags = {(value: string[], getTagProps) =>
                 value.map((option: string, index: number) => (
                   <Chip {...getTagProps({ index })}
@@ -344,6 +365,24 @@ class ItemDetailPanel extends Component<Props> {
           currentEntry = {entry}
           keeData = {this.context}
         />
+
+        {this.#iconPanelAncor &&
+          <IconChoicePanel
+            panelAncor = {this.#iconPanelAncor}
+            isPanelOpen = {this.state.isIconPanelOpen}
+            handlePanelClose = {() => this.setState({isIconPanelOpen: false})}
+            currentEntry = {entry}
+          />
+        }
+        {this.#colorPanelAncor &&
+          <ColorChoicePanel
+            panelAncor = {this.#colorPanelAncor}
+            isPanelOpen = {this.state.isColorPanelOpen}
+            handlePanelClose = {() => this.setState({isColorPanelOpen: false})}
+            currentEntry = {entry}
+          />
+        }
+
       </form>
     )
   }

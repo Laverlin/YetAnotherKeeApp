@@ -35,26 +35,17 @@ class ItemToolbar extends React.Component<IItemToolbarProps> {
 
   constructor(props : IItemToolbarProps) {
     super(props);
-    this.handleSave = this.handleSave.bind(this);
   }
 
-  async handleSave() {
 
-  }
 
   public render() {
     const { classes }  = this.props;
 
     return (
       <div className={classes.itemBottom}>
-        <IconButton aria-label="Save" onClick = {this.handleSave}>
-          <SvgPath className={classes.bottomIcon} path = {SystemIcon.save}/>
-        </IconButton>
-        <IconButton aria-label="Add Field"><SvgPath className={classes.bottomIcon} path = {SystemIcon.add}/></IconButton>
-        <IconButton aria-label="Add Attachment">
-          <SvgPath className={classes.bottomIcon} path  = {SystemIcon.attachFile} />
-        </IconButton>
-        <IconButton aria-label="Copy Entry"><SvgPath className={classes.bottomIcon} path = {SystemIcon.copyFile}/></IconButton>
+
+
         <IconButton aria-label="Delete Entry" style={{marginLeft:'auto'}}>
           <SvgPath className={classes.bottomIcon} path = {SystemIcon.delete}/>
         </IconButton>

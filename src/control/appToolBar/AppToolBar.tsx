@@ -2,7 +2,7 @@ import electron from "electron"
 import React from "react";
 import { RouteComponentProps, withRouter } from "react-router-dom";
 import {  createStyles, WithStyles, withStyles, Theme } from "@material-ui/core/styles";
-import {AppBar, Toolbar, Button, IconButton, Popover, Typography} from "@material-ui/core";
+import {AppBar, Toolbar, Button, IconButton, Popover, Typography, Tooltip} from "@material-ui/core";
 import clsx from "clsx";
 
 import { KeeData, KeeDataContext, SystemIcon } from "../../entity";
@@ -119,21 +119,20 @@ class AppToolBar extends React.Component<Props>
   {
     super(props);
     this.handleMaximizeWindow = this.handleMaximizeWindow.bind(this);
-    this.updateListener = this.updateListener.bind(this);
+    this.handleDbChange = this.handleDbChange.bind(this);
     this.handleSave = this.handleSave.bind(this);
   }
 
   componentDidMount() {
-    (this.context as KeeData).addDbUpdateListener(this.updateListener);
+    (this.context as KeeData).addDbUpdateListener(this.handleDbChange);
   }
 
   componentWillUnmount() {
-    (this.context as KeeData).removeDbUpdateListener(this.updateListener);
+    (this.context as KeeData).removeDbUpdateListener(this.handleDbChange);
   }
 
-  updateListener(isUpdated: boolean) {
+  handleDbChange(isUpdated: boolean) {
     this.setState({isDbUpdated: isUpdated});
-    console.log(this.state.isDbUpdated);
   }
 
   handleMaximizeWindow() {
@@ -177,28 +176,32 @@ class AppToolBar extends React.Component<Props>
 
           {(history.location.pathname != '/') &&
             <>
-              <IconButton
-                color = "inherit"
-                className = {clsx(classes.pushRight, this.state.isDbUpdated ? classes.button : classes.buttonDisabled)}
-                onClick = {this.handleSave}
-              >
-                <SvgPath className = {classes.icon20} path = {SystemIcon.save} />
-              </IconButton>
+              <Tooltip title = {'Save ' + (this.context as KeeData).dbName}>
+                <IconButton
+                  color = "inherit"
+                  className = {clsx(classes.pushRight, this.state.isDbUpdated ? classes.button : classes.buttonDisabled)}
+                  onClick = {this.handleSave}
+                >
+                  <SvgPath className = {classes.icon20} path = {SystemIcon.save} />
+                </IconButton>
+              </Tooltip>
               <Typography className = {classes.dbName}> {(this.context as KeeData).dbName}</Typography>
               <div style={{width:'30px'}}>
-              {this.state.isDbUpdated && <Typography variant='h5'>&nbsp;*</Typography>}
+                {this.state.isDbUpdated && <Typography variant='h5'>&nbsp;*</Typography>}
               </div>
               <SearchBox />
               <SortMenu buttonClassName = {classes.button}/>
             </>
           }
 
-          <IconButton
-            color="inherit"
-            className = {clsx(classes.button, classes.buttonMinimize)}
-          >
-            <SvgPath className = {classes.icon20} path = {SystemIcon.settings} />
-          </IconButton>
+          <Tooltip title = 'Settings'>
+            <IconButton
+              color="inherit"
+              className = {clsx(classes.button, classes.buttonMinimize)}
+            >
+              <SvgPath className = {classes.icon20} path = {SystemIcon.settings} />
+            </IconButton>
+          </Tooltip>
           <span className = {classes.space}/>
           <IconButton
             color="inherit"

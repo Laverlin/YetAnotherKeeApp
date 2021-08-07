@@ -1,6 +1,7 @@
 import { Card, CardContent, createStyles, Typography, withStyles, WithStyles } from '@material-ui/core';
-import { KdbxEntry, KdbxGroup } from 'kdbxweb';
+import { ByteUtils, KdbxEntry, KdbxGroup } from 'kdbxweb';
 import * as React from 'react';
+import { KeeData } from '../../entity';
 
 const styles = () =>  createStyles({
 
@@ -55,8 +56,15 @@ class ItemInfoCard extends React.Component<IItemInfoCardProps> {
           Used&nbsp;:&nbsp;<Typography variant="caption">{ entry.times.usageCount }</Typography>
           &nbsp;&nbsp;
           Group&nbsp;:&nbsp;<Typography variant="caption">{ entry.parentGroup?.name }</Typography>
-          &nbsp;&nbsp;
-          UUID&nbsp;:&nbsp;<Typography variant="caption">{ entry.uuid.toString() }</Typography>
+          {entry instanceof KdbxEntry &&
+          <>
+            &nbsp;&nbsp;
+            History&nbsp;:&nbsp;<Typography variant="caption">{ entry.history.length }</Typography>
+          </>
+          }
+        </Typography>
+        <Typography variant="body1" className={classes.ellipsis}>
+          UUID&nbsp;:&nbsp;<Typography variant="caption">{ ByteUtils.bytesToHex(ByteUtils.base64ToBytes(entry.uuid.id)).toUpperCase() }</Typography>
         </Typography>
 
       </CardContent>
