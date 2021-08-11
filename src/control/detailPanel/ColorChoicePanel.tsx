@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { createStyles, GridList, GridListTile, IconButton,  Popover, Theme,  WithStyles, withStyles } from '@material-ui/core';
-import { DefaultColors, KeeData, KeeDataContext, SystemIcon } from '../../entity';
+import { DefaultColors, SystemIcon } from '../../entity';
 import { SvgPath, scrollBar } from '../common';
 import clsx from 'clsx';
 import {  KdbxEntry, KdbxGroup} from 'kdbxweb';
@@ -43,24 +43,23 @@ const styles = (theme: Theme) =>  createStyles({
 interface IColorChoicePanelProps  extends WithStyles<typeof styles> {
   panelAncor: Element;
   isPanelOpen: boolean;
-  handlePanelClose: {(): void};
-  currentEntry: KdbxEntry | KdbxGroup
+  onClose: {(): void};
+  handleEntryUpdate: {(changeEntry: {(entry: KdbxEntry | KdbxGroup): void}): void};
 }
 
 class ColorChoicePanel extends React.Component<IColorChoicePanelProps> {
-  static contextType = KeeDataContext;
   constructor(props: IColorChoicePanelProps) {
     super(props);
   }
 
   handleSetColor(color: string){
-    if (!(this.props.currentEntry instanceof KdbxEntry)) {
-      return;
-    }
-
-    this.props.currentEntry.bgColor = color;
-    (this.context as KeeData).notifyDbUpdateSubscribers(true);
-    this.props.handlePanelClose();
+    this.props.onClose();
+    this.props.handleEntryUpdate(entry => {
+      if (!(entry instanceof KdbxEntry)) {
+        return;
+      }
+      entry.bgColor = color;
+    });
   }
 
   public render() {
@@ -75,7 +74,7 @@ class ColorChoicePanel extends React.Component<IColorChoicePanelProps> {
         anchorEl = {panelAncor}
         anchorOrigin = {{vertical: 'bottom', horizontal: 'right'}}
         transformOrigin = {{vertical: 'top', horizontal: 'right'}}
-        onClose = {() => this.props.handlePanelClose()}
+        onClose = {() => this.props.onClose()}
       >
         <div className = {classes.root}>
           <GridList cellHeight = {70} className = {clsx(classes.gridList, classes.scrollBar)} cols = {7}>

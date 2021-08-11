@@ -38,29 +38,33 @@ const styles = (theme: Theme) =>  createStyles({
 interface IIconChoicePanelProps  extends WithStyles<typeof styles> {
   panelAncor: Element;
   isPanelOpen: boolean;
-  handlePanelClose: {(): void};
-  currentEntry: KdbxEntry | KdbxGroup
+  handleEntryUpdate: {(changeEntry: {(entry: KdbxEntry | KdbxGroup): void}): void};
+  onClose: {():void};
 }
 
 class IconChoicePanel extends React.Component<IIconChoicePanelProps> {
   static contextType = KeeDataContext;
   constructor(props: IIconChoicePanelProps) {
     super(props);
+    this.handleIconChange = this.handleIconChange.bind(this);
   }
 
-  handleSetDefaultIcon(iconKey: string) {
-    const iconId = Object.keys(DefaultKeeIcon).findIndex(key => key === iconKey);
-    this.props.currentEntry.customIcon = undefined;
-    this.props.currentEntry.icon = iconId;
-    (this.context as KeeData).notifyDbUpdateSubscribers(true);
-    this.props.handlePanelClose();
+  handleIconChange(isPredefinedIcon: boolean, iconId: string) {
+    this.props.onClose();
+    this.props.handleEntryUpdate(entry => {
+      if (isPredefinedIcon) {
+        const iconKey = Object.keys(DefaultKeeIcon).findIndex(key => key === iconId) as number;
+        if (iconKey) {
+          entry.customIcon = undefined;
+          entry.icon = iconKey;
+        }
+      }
+      else {
+        entry.customIcon = new KdbxUuid(iconId as string);
+      }
+    });
   }
 
-  handleSetCustomIcon(uuid: string) {
-    this.props.currentEntry.customIcon = new KdbxUuid(uuid);
-    (this.context as KeeData).notifyDbUpdateSubscribers(true);
-    this.props.handlePanelClose();
-  }
 
   handleAddCustomIcon() {
     const files = remote.dialog.showOpenDialogSync({properties: ['openFile']});
@@ -85,16 +89,19 @@ class IconChoicePanel extends React.Component<IIconChoicePanelProps> {
         anchorEl = {panelAncor}
         anchorOrigin = {{vertical: 'bottom', horizontal: 'center'}}
         transformOrigin = {{vertical: 'top', horizontal: 'center'}}
-        onClose = {() => this.props.handlePanelClose()}
+        onClose = {() => this.props.onClose()}
       >
         <div className = {classes.root}>
           <GridList cellHeight = {50} className = {clsx(classes.gridList, classes.scrollBar)} cols = {9}>
             <GridListTile key="defaultSubheader" cols = {9} style = {{ height: 'auto' }} className = {classes.gridTitleHeader}>
               <ListSubheader component="div"><Typography variant='h5'>Default Icons</Typography></ListSubheader>
             </GridListTile>
-            {Object.keys(DefaultKeeIcon).map(i =>
+            {Object.keys(DefaultKeeIcon).filter(i => i !== 'get').map(i =>
               <GridListTile key = {i}>
-                <IconButton size='medium' onClick = {() => this.handleSetDefaultIcon(i)}>
+                <IconButton
+                  size='medium'
+                  onClick = {() => this.handleIconChange(true, i)}
+                >
                   <SvgPath path = {Reflect.get(DefaultKeeIcon, i)} />
                 </IconButton>
               </GridListTile>
@@ -110,7 +117,7 @@ class IconChoicePanel extends React.Component<IIconChoicePanelProps> {
             </GridListTile>
             {Array.from((this.context as KeeData).database.meta.customIcons).map(icon =>
               <GridListTile key = {icon[0]}>
-                <IconButton size='medium' onClick = {() => this.handleSetCustomIcon(icon[0])}>
+                <IconButton size='medium' onClick = {() => this.handleIconChange(false, icon[0])}>
                   <img
                     className = {classes.customIcon}
                     src={'data:image;base64,' + btoa(String.fromCharCode(...new Uint8Array(icon[1].data)))}/>

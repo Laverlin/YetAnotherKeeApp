@@ -26,9 +26,7 @@ const styles = (theme: Theme) =>  createStyles({
 })
 
 interface IItemToolbarProps extends WithStyles<typeof styles> {
-  updatedFields: Map<string, KdbxEntryField>,
   currentEntry: KdbxEntry | KdbxGroup,
-  keeData: KeeData
 }
 
 class ItemToolbar extends React.Component<IItemToolbarProps> {

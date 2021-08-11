@@ -13,7 +13,7 @@ import {
 } from '@material-ui/core';
 import clsx from 'clsx';
 import { SystemIcon } from '../../entity';
-import { KdbxBinary, KdbxBinaryWithHash, KdbxEntry, ProtectedValue } from 'kdbxweb';
+import { KdbxBinary, KdbxBinaryWithHash, KdbxEntry, KdbxGroup, ProtectedValue } from 'kdbxweb';
 import { SvgPath } from '../common';
 import { remote } from 'electron';
 
@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>  createStyles({
 
 interface IAttachInputProps extends WithStyles<typeof styles> {
   entry: KdbxEntry,
-  updateEntityInfo: {(): void}
+  handleEntryUpdate: {(changeEntry: {(entry: KdbxEntry | KdbxGroup ): void}): void};
 }
 
 class AttachInput extends React.Component<IAttachInputProps> {
@@ -77,7 +77,6 @@ class AttachInput extends React.Component<IAttachInputProps> {
     this.handleAddAttachment = this.handleAddAttachment.bind(this);
     this.handleDeleteAttachment = this.handleDeleteAttachment.bind(this);
     this.handleSaveAttachment = this.handleSaveAttachment.bind(this);
-
   }
 
   handleAddAttachment() {
@@ -85,19 +84,22 @@ class AttachInput extends React.Component<IAttachInputProps> {
     if (!files){
       return
     }
-    this.props.updateEntityInfo();
-    files.forEach(file => {
-      const buffer = fs.readFileSync(file);
-      const binary: KdbxBinary = new Uint8Array(buffer).buffer;
-      this.props.entry.binaries.set(path.basename(file), binary);
-    })
-
+    this.props.handleEntryUpdate(entry => {
+      if (entry instanceof KdbxEntry) {
+        files.forEach(file => {
+          const buffer = fs.readFileSync(file);
+          const binary: KdbxBinary = new Uint8Array(buffer).buffer;
+          entry.binaries.set(path.basename(file), binary);
+        })
+      }
+    });
     this.forceUpdate();
   }
 
   handleDeleteAttachment(key: string) {
-    this.props.updateEntityInfo();
-    this.props.entry.binaries.delete(key);
+    this.props.handleEntryUpdate(entry => {
+      (entry as KdbxEntry).binaries.delete(key);
+    });
     this.forceUpdate();
   }
 

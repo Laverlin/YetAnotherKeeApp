@@ -103,7 +103,7 @@ class AppToolBar extends React.Component<Props>
     isPopOpen: false,
     isSortMenuOpen: false,
     sortField: 'Title',
-    isDbUpdated: false
+    isDbChanged: false
   }
 
   info = {
@@ -124,15 +124,15 @@ class AppToolBar extends React.Component<Props>
   }
 
   componentDidMount() {
-    (this.context as KeeData).addDbUpdateListener(this.handleDbChange);
+    (this.context as KeeData).addDbChangeListener(this.handleDbChange);
   }
 
   componentWillUnmount() {
-    (this.context as KeeData).removeDbUpdateListener(this.handleDbChange);
+    (this.context as KeeData).removeDbChangeListener(this.handleDbChange);
   }
 
-  handleDbChange(isUpdated: boolean) {
-    this.setState({isDbUpdated: isUpdated});
+  handleDbChange(isDbChanged: boolean) {
+    this.setState({isDbChanged: isDbChanged});
   }
 
   handleMaximizeWindow() {
@@ -154,7 +154,6 @@ class AppToolBar extends React.Component<Props>
 
   async handleSave() {
     await (this.context as KeeData).saveDb();
-    this.setState({isDbUpdated: false});
   }
 
   render() {
@@ -179,7 +178,7 @@ class AppToolBar extends React.Component<Props>
               <Tooltip title = {'Save ' + (this.context as KeeData).dbName}>
                 <IconButton
                   color = "inherit"
-                  className = {clsx(classes.pushRight, this.state.isDbUpdated ? classes.button : classes.buttonDisabled)}
+                  className = {clsx(classes.pushRight, this.state.isDbChanged ? classes.button : classes.buttonDisabled)}
                   onClick = {this.handleSave}
                 >
                   <SvgPath className = {classes.icon20} path = {SystemIcon.save} />
@@ -187,7 +186,7 @@ class AppToolBar extends React.Component<Props>
               </Tooltip>
               <Typography className = {classes.dbName}> {(this.context as KeeData).dbName}</Typography>
               <div style={{width:'30px'}}>
-                {this.state.isDbUpdated && <Typography variant='h5'>&nbsp;*</Typography>}
+                {this.state.isDbChanged && <Typography variant='h5'>&nbsp;*</Typography>}
               </div>
               <SearchBox />
               <SortMenu buttonClassName = {classes.button}/>

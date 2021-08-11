@@ -9,7 +9,9 @@ export default class KeeData {
   #password: ProtectedValue = ProtectedValue.fromString('');
   #database: Kdbx | undefined = undefined;
 
-  #dbUpdateListeners = [] as {(isUpdated: boolean): void} [];
+  #isDbSaved: boolean = true;
+
+  #dbSaveListeners = [] as {(isDbSaved: boolean): void} [];
   #groupListeners = [] as {(groupId: string): void} [];
   #entryListeners = [] as {(entry: KdbxEntry): void} [];
   #searchFilterListeners = [] as {(query: string): void} [];
@@ -36,6 +38,10 @@ export default class KeeData {
     return path.parse(this.#path).base;
   }
 
+  get isDbSaved() {
+    return this.#isDbSaved;
+  }
+
   // Set password for the db
   //
   set password(password: ProtectedValue){
@@ -51,6 +57,7 @@ export default class KeeData {
     const data = await fs.promises.readFile(this.#path);
     const credentials = new Credentials(this.#password, null);
     this.#database = await Kdbx.load(new Uint8Array(data).buffer, credentials);
+    this.#isDbSaved = true;
   }
 
   async saveDb() {
@@ -63,6 +70,8 @@ export default class KeeData {
 
     let db = await this.#database.save();
     fs.writeFileSync(this.#path, Buffer.from(db));
+    this.#isDbSaved = true
+    this.notifyDbChangeListeners(false);
   }
 
   // Return data from loaded file
@@ -104,16 +113,21 @@ export default class KeeData {
      return [...new Set(tags)];
   }
 
-  addDbUpdateListener(listener: {(isUpdated: boolean): void}){
-    this.#dbUpdateListeners.push(listener);
+  addDbChangeListener(listener: {(isDbChanged: boolean): void}) {
+    this.#dbSaveListeners.push(listener);
   }
 
-  removeDbUpdateListener(listener: {(isUpdated: boolean): void}){
-    this.#dbUpdateListeners = this.#dbUpdateListeners.filter(item => listener !== item);
+  removeDbChangeListener(listener: {(isDbChanged: boolean): void}) {
+    this.#dbSaveListeners = this.#dbSaveListeners.filter(item => listener !== item);
   }
 
-  notifyDbUpdateSubscribers(isUpdated: boolean) {
-    this.#dbUpdateListeners.forEach(listener => listener(isUpdated));
+  // Notify subscribers about the state of DB and memory model
+  // true - model has been changed and different from the DB in file
+  // false - model is the same and has been saved to file
+  //
+  notifyDbChangeListeners(isDbChanged: boolean) {
+    this.#dbSaveListeners.forEach(listener => listener(isDbChanged));
+    this.#isDbSaved = !isDbChanged;
   }
 
   // Add listener for event if group has changed
