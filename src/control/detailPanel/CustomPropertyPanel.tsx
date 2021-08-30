@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Checkbox, createStyles, FormControlLabel, IconButton,  Popover, TextField, Theme,  WithStyles, withStyles } from '@material-ui/core';
-import { KeeDataContext, SystemIcon } from '../../entity';
+import { KeeData, KeeDataContext, SystemIcon } from '../../entity';
 import { SvgPath } from '../common';
 import {  KdbxEntry, KdbxGroup, ProtectedValue} from 'kdbxweb';
 
@@ -23,7 +23,7 @@ interface ICustomPropertyPanelProps  extends WithStyles<typeof styles> {
   panelAncor: Element;
   isPanelOpen: boolean;
   onClose: {(): void};
-  handleEntryUpdate: {(changeEntry: {(entry: KdbxEntry | KdbxGroup): void}): void};
+  entry: KdbxEntry;
 }
 
 interface ICustomPropertyStateProps {
@@ -56,7 +56,9 @@ class CustomPropertyPanel extends React.Component<ICustomPropertyPanelProps, ICu
     if (!this.state.customPropertyName) {
       return;
     }
-    this.props.handleEntryUpdate(entry => {
+    (this.context as KeeData).updateEntry(
+      this.props.entry,
+      entry => {
       if (entry instanceof KdbxEntry) {
         entry.fields.set(
           this.state.customPropertyName,

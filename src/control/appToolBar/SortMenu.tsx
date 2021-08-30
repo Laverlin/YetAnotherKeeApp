@@ -54,12 +54,11 @@ class SortMenu extends React.Component<Props>
   static contextType = KeeDataContext;
   state = {
     isSortMenuOpen: false,
-    sortField: menuItems[0].name
   }
 
   handleSort(sortField: string) {
-    (this.context as KeeData).notifySortSubscribers(sortField);
-    this.setState({isSortMenuOpen: false, sortField: sortField});
+    (this.context as KeeData).entryFilter.sortField = sortField;
+    this.setState({isSortMenuOpen: false});
   }
 
   render() {
@@ -90,7 +89,7 @@ class SortMenu extends React.Component<Props>
             <MenuItem onClick = {() => this.handleSort(item.name)} key = {item.name}>
               {item.displayName}
               <ListItemIcon className = {classes.menuIcon}>
-                { (this.state.sortField === item.name)
+                { ((this.context as KeeData).entryFilter.sortField === item.name)
                   && <SvgPath path = {SystemIcon.sortArrowAsc} style = {{marginLeft: 'auto'}}/>
                 }
               </ListItemIcon>

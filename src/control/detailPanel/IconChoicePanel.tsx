@@ -38,8 +38,8 @@ const styles = (theme: Theme) =>  createStyles({
 interface IIconChoicePanelProps  extends WithStyles<typeof styles> {
   panelAncor: Element;
   isPanelOpen: boolean;
-  handleEntryUpdate: {(changeEntry: {(entry: KdbxEntry | KdbxGroup): void}): void};
   onClose: {():void};
+  entry: KdbxEntry | KdbxGroup;
 }
 
 class IconChoicePanel extends React.Component<IIconChoicePanelProps> {
@@ -51,20 +51,22 @@ class IconChoicePanel extends React.Component<IIconChoicePanelProps> {
 
   handleIconChange(isPredefinedIcon: boolean, iconId: string) {
     this.props.onClose();
-    this.props.handleEntryUpdate(entry => {
-      if (isPredefinedIcon) {
-        const iconKey = Object.keys(DefaultKeeIcon).findIndex(key => key === iconId) as number;
-        if (iconKey) {
-          entry.customIcon = undefined;
-          entry.icon = iconKey;
+    (this.context as KeeData).updateEntry(
+      this.props.entry,
+      entry => {
+        if (isPredefinedIcon) {
+          const iconKey = Object.keys(DefaultKeeIcon).findIndex(key => key === iconId) as number;
+          if (iconKey) {
+            entry.customIcon = undefined;
+            entry.icon = iconKey;
+          }
+        }
+        else {
+          entry.customIcon = new KdbxUuid(iconId as string);
         }
       }
-      else {
-        entry.customIcon = new KdbxUuid(iconId as string);
-      }
-    });
+    );
   }
-
 
   handleAddCustomIcon() {
     const files = remote.dialog.showOpenDialogSync({properties: ['openFile']});

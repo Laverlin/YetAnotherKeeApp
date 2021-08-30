@@ -22,15 +22,25 @@ export const groupListStyles = (theme: Theme) =>  createStyles({
     height: theme.spacing(6),
     paddingLeft: theme.spacing(1),
     paddingRight: theme.spacing(1),
-    "&:hover": {
-      backgroundColor: 'rgba(170, 170, 170, 0.2)'
+    '&:hover, &:focus': {
+      backgroundColor: 'rgba(170, 170, 170, 0.2)',
+      '& $menuButtonDiv': {
+        display: 'block'
+      }
     },
-    "&.Mui-selected": {
+    '&.Mui-selected': {
       backgroundColor:'#4481C2',
-      "&:hover": {
+      '& $menuButtonDiv': {
+        display: 'block'
+      },
+      '&:hover': {
         backgroundColor: '#4481C2'
       },
     }
+  },
+
+  menuButtonDiv: {
+    display: 'none'
   },
 
   icon:{

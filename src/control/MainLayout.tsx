@@ -6,7 +6,7 @@ import {
   Theme,
 } from '@material-ui/core/styles';
 import {GroupListPanel} from './groupList';
-import ItemListPanel from './listPanel/ItemListPanel';
+import EntryListPanel from './entryList/EntryListPanel';
 import ItemDetailPanel from './detailPanel/ItemDetailPanel';
 
 class DraggerPosition {
@@ -139,7 +139,7 @@ class MainLayout extends React.Component<Props> {
             right: window.innerWidth - this.state.draggers[1].position
           }}
         >
-          <ItemListPanel />
+          <EntryListPanel />
         </div>
 
         <div

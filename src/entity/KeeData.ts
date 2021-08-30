@@ -1,45 +1,37 @@
 import fs from 'fs';
-import { Kdbx, ProtectedValue, Credentials, KdbxEntry} from 'kdbxweb';
+import { Kdbx, ProtectedValue, Credentials, KdbxEntry, KdbxUuid, KdbxGroup} from 'kdbxweb';
 import path from 'path';
+import { EntryFilter } from './EntryFilter';
+import { GroupSelectedEvent, KeeEvent, KeeEventDescriptor } from './KeeEvent';
+
 
 // Keeps the state of loaded data from the kdbx file
 //
 export default class KeeData {
+
+  static allGroupId = KdbxUuid.random().id;
+  static allGroupUuid = new KdbxUuid(KeeData.allGroupId);
+  static anyEntryId = KdbxUuid.random().id;
+  static anyEntryUuid = new KdbxUuid(KeeData.anyEntryId);
+
   #path: string = '';
   #password: ProtectedValue = ProtectedValue.fromString('');
   #database: Kdbx | undefined = undefined;
-
-  #isDbSaved: boolean = true;
-
-  #dbSaveListeners = [] as {(isDbSaved: boolean): void} [];
-  #groupListeners = [] as {(groupId: string): void} [];
-  #entryListeners = [] as {(entry: KdbxEntry): void} [];
-  #searchFilterListeners = [] as {(query: string): void} [];
-  #sortListeners = [] as {(sortField: string): void} [];
-  #colorFilterListeners = [] as {(colorFilter: string): void} [];
-  #tagFilterListeners = [] as {(selectedTags: string[]): void} [];
-
-  static allGroupId = 'all'
-
-  #selectedGroupId = KeeData.allGroupId;
+  #selectedGroupUuid = KeeData.allGroupUuid;
+  #selectedEntryUuid = new KdbxUuid();
+  #editedEntries: KdbxUuid[] = [];
+  #eventListeners: Array<any> = [];
 
   // Set path to database file
   //
-  set dbFullPath(path: string){
+  set dbFullPath(path: string) {
     this.#path = path;
   }
 
   // return database file name if path is set
   //
   get dbName(): string {
-  //  if (!this.dbFullPath) {
-  //    throw 'The full path to the database file should be set before usage'
-  //  }
     return path.parse(this.#path).base;
-  }
-
-  get isDbSaved() {
-    return this.#isDbSaved;
   }
 
   // Set password for the db
@@ -57,7 +49,7 @@ export default class KeeData {
     const data = await fs.promises.readFile(this.#path);
     const credentials = new Credentials(this.#password, null);
     this.#database = await Kdbx.load(new Uint8Array(data).buffer, credentials);
-    this.#isDbSaved = true;
+    this.#editedEntries = [];
   }
 
   async saveDb() {
@@ -70,8 +62,7 @@ export default class KeeData {
 
     let db = await this.#database.save();
     fs.writeFileSync(this.#path, Buffer.from(db));
-    this.#isDbSaved = true
-    this.notifyDbChangeListeners(false);
+    this.#editedEntries = [];
   }
 
   // Return data from loaded file
@@ -102,8 +93,18 @@ export default class KeeData {
   // return ID of special folder for trash
   //
   get recycleBinUuid() {return this.database.meta.recycleBinUuid}
+  get isRecycleBinAvailable() {return !!this.recycleBinUuid}
+  get recycleBinGroup(): KdbxGroup {
+    if (!this.recycleBinUuid)
+      throw 'Recycle bin unavailable. Use isRecycleBinAvailable property to check';
+    const bin = this.database.getGroup(this.recycleBinUuid);
+    if (!bin)
+      throw 'Fatal: could not find recycle bin';
+    return bin;
+  }
 
-  get selectedGroupId() {return this.#selectedGroupId}
+  get selectedGroupUuid() {return this.#selectedGroupUuid}
+  get selectedEntryUuid() {return this.#selectedEntryUuid}
 
   get tags(): string[] {
      let tags: string[] = [];
@@ -113,105 +114,117 @@ export default class KeeData {
      return [...new Set(tags)];
   }
 
-  addDbChangeListener(listener: {(isDbChanged: boolean): void}) {
-    this.#dbSaveListeners.push(listener);
+  #entryFilter:EntryFilter = new EntryFilter(this);
+  get entryFilter() {
+    return this.#entryFilter;
   }
 
-  removeDbChangeListener(listener: {(isDbChanged: boolean): void}) {
-    this.#dbSaveListeners = this.#dbSaveListeners.filter(item => listener !== item);
+
+  addEventListener<T extends KeeEvent>(
+    keeEventType: new() => T,
+    entryId: KdbxUuid,
+    listener: (event: T) => void): void {
+      const eventDescriptor = new KeeEventDescriptor<T>(keeEventType, entryId, listener);
+      this.#eventListeners.push(eventDescriptor)
   }
 
-  // Notify subscribers about the state of DB and memory model
-  // true - model has been changed and different from the DB in file
-  // false - model is the same and has been saved to file
+  fireEvent<T extends KeeEvent>(event: T) {
+    this.#eventListeners.filter(l => ((l as KeeEventDescriptor<T>).entryId.equals(event.entryId) ||
+        (l as KeeEventDescriptor<T>).entryId.equals(KeeData.anyEntryUuid)) &&
+        (l as KeeEventDescriptor<T>).typeName === event.constructor.name)
+      .forEach(l => {
+        l.listener(event);
+      });
+  }
+
+  removeEventListener<T extends KeeEvent>(
+    keeEventType: new() => T,
+    entryId: KdbxUuid,
+    listener: (event: T) => void) {
+      this.#eventListeners = this.#eventListeners
+        .filter(i => !i.entryId.equals(entryId) || i.typeName !== keeEventType.name || i.listener !== listener)
+  }
+
+  setSelectedEntry(entryUuid: KdbxUuid) {
+    this.fireEvent<GroupSelectedEvent>(KeeEvent.createEntrySelectedEvent(this.#selectedEntryUuid, true));
+    this.#selectedEntryUuid = entryUuid;
+    this.fireEvent<GroupSelectedEvent>(KeeEvent.createEntrySelectedEvent(entryUuid));
+  }
+
+  setSelectedGroup(groupUuid: KdbxUuid) {
+    this.#selectedGroupUuid = groupUuid;
+    this.fireEvent<GroupSelectedEvent>(KeeEvent.createGroupSelectedEvent(groupUuid));
+  }
+
+  createGroup(parentGroupUuid: KdbxUuid) {
+    const parentGroup = this.database.getGroup(parentGroupUuid);
+    if (!parentGroup)
+      return;
+    const newGroup = this.database.createGroup(parentGroup, 'New Group');
+    this.setSelectedGroup(newGroup.uuid);
+    this.fireEvent(KeeEvent.createEntryChangedEvent(newGroup.uuid));
+  }
+
+  createEntry(parentGroupUuid: KdbxUuid) {
+    const parentGroup = this.database.getGroup(parentGroupUuid);
+    if (!parentGroup)
+      return;
+    const newEntry = this.database.createEntry(parentGroup);
+    this.#editedEntries.push(newEntry.uuid); // to avoid emprty record in history
+    this.setSelectedGroup(parentGroupUuid);
+    this.setSelectedEntry(newEntry.uuid);
+    this.fireEvent(KeeEvent.createEntryChangedEvent(newEntry.uuid));
+  }
+
+  moveEntryOrGroup(targetGroup: KdbxGroup, entryUuid: KdbxUuid) {
+    const defaultGroup = this.database.getDefaultGroup();
+    const entry = Array.from(defaultGroup.allGroupsAndEntries())
+      .find(e => e.uuid.equals(entryUuid));
+    if (!entry || targetGroup.uuid.equals(entryUuid) || entryUuid.equals(defaultGroup.uuid))
+      return;
+    const selectedGroup = entry.parentGroup as KdbxGroup;
+    this.database.move(entry, targetGroup);
+    this.setSelectedGroup(selectedGroup.uuid);
+    this.fireEvent(KeeEvent.createEntryChangedEvent(entryUuid));
+  }
+
+  deleteGroup(groupUuid: KdbxUuid) {
+    const group = this.database.getGroup(groupUuid);
+    if (!group)
+      return;
+    this.deleteEntryOrGroup(group);
+  }
+
+  deleteEntryOrGroup(entry: KdbxEntry | KdbxGroup) {
+    if (!this.isRecycleBinAvailable)
+      throw 'No Recycle Bin'
+    if (entry.uuid === this.database.getDefaultGroup().uuid)
+      throw 'Can not delete default group'
+
+    const parentGroupId = entry.parentGroup!.uuid;
+    this.database.move(entry, this.recycleBinGroup);
+    this.setSelectedGroup(parentGroupId);
+    this.fireEvent(KeeEvent.createEntryChangedEvent(entry.uuid));
+  }
+
+  // Update entity state: push history, set update time, notify
+  // and apply changes form function
   //
-  notifyDbChangeListeners(isDbChanged: boolean) {
-    this.#dbSaveListeners.forEach(listener => listener(isDbChanged));
-    this.#isDbSaved = !isDbChanged;
-  }
+  updateEntry(entry: KdbxEntry| KdbxGroup, changeState: {(entry: KdbxEntry | KdbxGroup): void}) {
 
-  // Add listener for event if group has changed
-  //
-  addGroupListener(listener : {(groupId: string): void}) {
-    this.#groupListeners.push(listener);
-  }
-
-  removeGroupListener(listener : {(groupId: string): void}){
-    this.#groupListeners = this.#groupListeners.filter(item => listener !== item);
-  }
-
-  // notify all subscribers that group has changed
-  //
-  notifyGroupSubscribers(groupId: string) {
-    if (groupId) {
-      this.#selectedGroupId = groupId;
-      this.#groupListeners.forEach(listener => listener(groupId));
+    // need to push history of entry only once per save db
+    // for this edited items are traked
+    //
+    if (!this.#editedEntries.find(i => i.equals(entry.uuid))) {
+      this.#editedEntries.push(entry.uuid);
+      if (entry instanceof KdbxEntry) {
+        entry.pushHistory();
+      }
+      entry.times.update();
     }
+    changeState(entry);
+    this.fireEvent(KeeEvent.createEntryChangedEvent(entry.uuid));
   }
-
-  // Add listener for event if entry has changed
-  //
-  addEntryListener(listener: {(entry: KdbxEntry): void}){
-    this.#entryListeners.push(listener);
-  }
-
-  removeEntryListener(listener : {(entry: KdbxEntry): void}){
-    this.#entryListeners = this.#entryListeners.filter(item => listener !== item);
-  }
-
-  // notify all subscribers that entry has changed
-  // provides the new entry
-  //
-  notifyEntrySubscribers(entry: KdbxEntry) {
-    if (entry) {
-      this.#entryListeners.forEach(listener => listener(entry));
-    }
-  }
-
-  addSearchFilterListener(listener: {(query: string): void}) {
-    this.#searchFilterListeners.push(listener);
-  }
-
-  removeSearchFilterListener(listener: {(query: string): void}) {
-    this.#searchFilterListeners = this.#searchFilterListeners.filter(item => listener !== item);
-  }
-
-  notifySearchFilterSubscribers(query:string) {
-    this.#searchFilterListeners.forEach(listener => listener(query));
-  }
-
-  addSortListener(listener: {(sortField: string): void}) {
-    this.#sortListeners.push(listener);
-  }
-
-  removeSortListener(listener: {(sortField: string): void}) {
-    this.#sortListeners = this.#sortListeners.filter(item => listener !== item);
-  }
-
-  notifySortSubscribers(sortField: string) {
-    this.#sortListeners.forEach(listener => listener(sortField));
-  }
-
-  addColorFilterListener(listener: {(colorFilter: string): void}) {
-    this.#colorFilterListeners.push(listener);
-  }
-  removeColorFilterListener(listener: {(colorFilter: string): void}) {
-    this.#colorFilterListeners.filter(item => listener != item);
-  }
-  notifyColorFilterSubscribers(colorFilter: string){
-    this.#colorFilterListeners.forEach(listener => listener(colorFilter));
-  }
-
-  addTagFilterListener(listener: {(tags: string[]): void}) {
-    this.#tagFilterListeners.push(listener);
-  }
-  removeTagFilterListener(listener: {(tsgs: string[]): void}) {
-    this.#tagFilterListeners.filter(item => listener != item);
-  }
-  notifyTagFilterSubscribers(tags: string[]){
-    this.#tagFilterListeners.forEach(listener => listener(tags));
-  }
-
 
 
 }

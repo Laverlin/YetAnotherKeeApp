@@ -12,7 +12,7 @@ import {
   WithStyles
 } from '@material-ui/core';
 import clsx from 'clsx';
-import { SystemIcon } from '../../entity';
+import { KeeData, KeeDataContext, SystemIcon } from '../../entity';
 import { KdbxBinary, KdbxBinaryWithHash, KdbxEntry, KdbxGroup, ProtectedValue } from 'kdbxweb';
 import { SvgPath } from '../common';
 import { remote } from 'electron';
@@ -67,11 +67,11 @@ const styles = (theme: Theme) =>  createStyles({
 })
 
 interface IAttachInputProps extends WithStyles<typeof styles> {
-  entry: KdbxEntry,
-  handleEntryUpdate: {(changeEntry: {(entry: KdbxEntry | KdbxGroup ): void}): void};
+  entry: KdbxEntry
 }
 
 class AttachInput extends React.Component<IAttachInputProps> {
+  static contextType = KeeDataContext;
   constructor(props: IAttachInputProps) {
     super(props);
     this.handleAddAttachment = this.handleAddAttachment.bind(this);
@@ -84,23 +84,27 @@ class AttachInput extends React.Component<IAttachInputProps> {
     if (!files){
       return
     }
-    this.props.handleEntryUpdate(entry => {
-      if (entry instanceof KdbxEntry) {
-        files.forEach(file => {
-          const buffer = fs.readFileSync(file);
-          const binary: KdbxBinary = new Uint8Array(buffer).buffer;
-          entry.binaries.set(path.basename(file), binary);
-        })
-      }
-    });
-    this.forceUpdate();
+
+    (this.context as KeeData).updateEntry(
+      this.props.entry,
+      entry => {
+        if (entry instanceof KdbxEntry) {
+          files.forEach(file => {
+            const buffer = fs.readFileSync(file);
+            const binary: KdbxBinary = new Uint8Array(buffer).buffer;
+            entry.binaries.set(path.basename(file), binary);
+          })
+        }
+      });
   }
 
   handleDeleteAttachment(key: string) {
-    this.props.handleEntryUpdate(entry => {
-      (entry as KdbxEntry).binaries.delete(key);
-    });
-    this.forceUpdate();
+    (this.context as KeeData).updateEntry(
+      this.props.entry,
+        entry => {
+        (entry as KdbxEntry).binaries.delete(key);
+      }
+    );
   }
 
   handleSaveAttachment(key: string) {

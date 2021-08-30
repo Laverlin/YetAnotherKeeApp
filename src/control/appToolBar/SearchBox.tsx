@@ -58,13 +58,14 @@ class SearchBox extends React.Component<Props>
 {
   static contextType = KeeDataContext;
 
-  handleSearch(filter: string) {
-    (document.getElementById("search") as HTMLInputElement)!.value = filter;
-    (this.context as KeeData).notifySearchFilterSubscribers(filter);
+  handleSearch(query: string) {
+    (this.context as KeeData).entryFilter.queryFilter = query;
+    this.forceUpdate();
   }
 
   render() {
     const {classes} = this.props;
+    const {entryFilter} = (this.context as KeeData)
     return (
       <MuiThemeProvider theme = {searchTheme}>
         <OutlinedInput
@@ -72,6 +73,7 @@ class SearchBox extends React.Component<Props>
           className = {classes.searchInput}
           onChange = {event => this.handleSearch(event.target.value)}
           onKeyDown = {event => event.key === 'Escape' && this.handleSearch('')}
+          value = {entryFilter.queryFilter}
           placeholder = "Search"
           endAdornment = {
             <InputAdornment position="end">

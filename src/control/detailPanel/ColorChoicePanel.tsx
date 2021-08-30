@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { createStyles, GridList, GridListTile, IconButton,  Popover, Theme,  WithStyles, withStyles } from '@material-ui/core';
-import { DefaultColors, SystemIcon } from '../../entity';
+import { DefaultColors, KeeData, KeeDataContext, SystemIcon } from '../../entity';
 import { SvgPath, scrollBar } from '../common';
 import clsx from 'clsx';
 import {  KdbxEntry, KdbxGroup} from 'kdbxweb';
@@ -44,22 +44,21 @@ interface IColorChoicePanelProps  extends WithStyles<typeof styles> {
   panelAncor: Element;
   isPanelOpen: boolean;
   onClose: {(): void};
-  handleEntryUpdate: {(changeEntry: {(entry: KdbxEntry | KdbxGroup): void}): void};
+  entry: KdbxEntry;
 }
 
 class ColorChoicePanel extends React.Component<IColorChoicePanelProps> {
+  static contextType = KeeDataContext;
   constructor(props: IColorChoicePanelProps) {
     super(props);
   }
 
   handleSetColor(color: string){
     this.props.onClose();
-    this.props.handleEntryUpdate(entry => {
-      if (!(entry instanceof KdbxEntry)) {
-        return;
-      }
-      entry.bgColor = color;
-    });
+    (this.context as KeeData).updateEntry(
+      this.props.entry,
+      entry => (entry as KdbxEntry).bgColor = color
+    );
   }
 
   public render() {

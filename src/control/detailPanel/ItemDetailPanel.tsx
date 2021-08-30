@@ -37,6 +37,7 @@ import AttachInput from "./AttachInput";
 import IconChoicePanel from "./IconChoicePanel";
 import ColorChoicePanel from "./ColorChoicePanel";
 import CustomPropertyPanel from "./CustomPropertyPanel";
+import { EntryChangedEvent, EntrySelectedEvent, GroupSelectedEvent } from "../../entity/KeeEvent";
 
 const styles = (theme: Theme) =>  createStyles({
 
@@ -143,107 +144,91 @@ class ItemDetailPanel extends Component<Props> {
   #iconPanelAncor: Element | null = null;
   #colorPanelAncor: Element | null = null;
   #propertyPanelAncor: Element | null = null;
-  #editedItems: string[] = [];
 
   constructor(props : Props) {
     super(props);
-    this.handleUpdateEntry = this.handleUpdateEntry.bind(this);
-    this.handleUpdateGroup = this.handleUpdateGroup.bind(this);
-    this.updateEntityState = this.updateEntityState.bind(this);
+    this.handleGroupOrEntrySelected = this.handleGroupOrEntrySelected.bind(this);
     this.handleInputChange = this.handleInputChange.bind(this);
-    this.handleDbUpdate = this.handleDbUpdate.bind(this);
-
     this.handleTagsChange = this.handleTagsChange.bind(this);
     this.handleDateChange = this.handleDateChange.bind(this);
+    this.handleEntryChanged = this.handleEntryChanged.bind(this);
   }
 
   componentDidMount() {
     const keeData = (this.context as KeeData);
-    keeData.addEntryListener(this.handleUpdateEntry);
-    keeData.addGroupListener(this.handleUpdateGroup);
-    keeData.addDbChangeListener(this.handleDbUpdate);
+    keeData.addEventListener(GroupSelectedEvent, KeeData.anyEntryUuid, this.handleGroupOrEntrySelected);
+    keeData.addEventListener(EntrySelectedEvent, KeeData.anyEntryUuid, this.handleGroupOrEntrySelected);
   }
 
   componentWillUnmount() {
     const keeData = (this.context as KeeData);
-    keeData.removeEntryListener(this.handleUpdateEntry);
-    keeData.removeGroupListener(this.handleUpdateGroup);
-    keeData.removeDbChangeListener(this.handleDbUpdate);
+    keeData.removeEventListener(GroupSelectedEvent, KeeData.anyEntryUuid, this.handleGroupOrEntrySelected);
+    keeData.removeEventListener(EntrySelectedEvent, KeeData.anyEntryUuid, this.handleGroupOrEntrySelected);
+    if (this.state.entry)
+      keeData.removeEventListener(EntryChangedEvent, this.state.entry.uuid, this.handleEntryChanged);
   }
 
-  // Update entity state: push history, set update time, notify
-  // and apply changes form function
-  //
-  updateEntityState(changeState: {(entry: KdbxEntry | KdbxGroup): void}, forceUpdate: boolean = false) {
-    const entry = this.state.entry;
+  handleEntryChanged(_: EntryChangedEvent) {
+    this.forceUpdate();
+  }
+
+  handleGroupOrEntrySelected(event: GroupSelectedEvent | EntrySelectedEvent) {
+    const keeData = (this.context as KeeData);
+    const entry = Array.from(keeData.database
+      .getDefaultGroup().allGroupsAndEntries()).find(e => e.uuid.equals(event.entryId));
     if (!entry) {
       return
     }
-
-    // need to push history of entry only once per save db
-    // for this edited items are traked
-    //
-    if (!this.#editedItems.find(i => i === entry.uuid.id)) {
-      this.#editedItems.push(entry.uuid.id);
-      if (entry instanceof KdbxEntry) {
-        entry.pushHistory();
-      }
-      entry.times.update();
-      (this.context as KeeData).notifyDbChangeListeners(true);
-    }
-
-    changeState(entry);
-    if (forceUpdate) {
-      this.forceUpdate();
-    }
-  }
-
-  // clear change history after db has been saved
-  //
-  handleDbUpdate(isDbChanged: boolean) {
-    if(!isDbChanged) {
-      this.#editedItems = [];
-    }
+    if (this.state.entry)
+      keeData.removeEventListener(EntryChangedEvent, this.state.entry.uuid, this.handleEntryChanged);
+    keeData.addEventListener(EntryChangedEvent, entry.uuid, this.handleEntryChanged);
+    this.setState({entry: entry});
   }
 
   handleInputChange(fieldId: string, inputValue: string, isProtected: boolean) {
-    this.updateEntityState(entry => {
-      let kdbxValue = isProtected ? ProtectedValue.fromString(inputValue) : inputValue;
-      if (entry instanceof KdbxEntry) {
-        entry.fields.set(fieldId, kdbxValue);
-      }
-      else {
-        if (fieldId === 'Title') {entry.name = kdbxValue as string};
-        if (fieldId === 'Notes') {entry.notes = kdbxValue as string};
-      }
-    }, true);
-  }
+    if (!this.state.entry)
+      return;
 
-  handleUpdateEntry(entry: KdbxEntry) {
-    this.setState({entry: entry});
-  }
-
-  handleUpdateGroup(groupId: string) {
-    const entry = (this.context as KeeData).database.getGroup(groupId);
-    if (!entry) {
-      return
-    }
-    this.setState({entry: entry});
+    (this.context as KeeData).updateEntry(
+      this.state.entry,
+      entry => {
+        let kdbxValue = isProtected ? ProtectedValue.fromString(inputValue) : inputValue;
+        if (entry instanceof KdbxEntry) {
+          entry.fields.set(fieldId, kdbxValue);
+        }
+        else {
+          if (fieldId === 'Title') {entry.name = kdbxValue as string};
+          if (fieldId === 'Notes') {entry.notes = kdbxValue as string};
+        }
+      }
+    );
   }
 
   handleTagsChange (_: any, values: string[]) {
-    this.updateEntityState(entry => {
-      entry.tags = values;
-    }, true);
+    if (!this.state.entry)
+      return;
+
+    (this.context as KeeData).updateEntry(
+      this.state.entry,
+      entry => {
+        entry.tags = values;
+      }
+    );
   }
 
   handleDateChange (date: MaterialUiPickersDate) {
-    this.updateEntityState(entry => {
-      entry.times.expires = !!date;
-      if (date) {
-        entry.times!.expiryTime = date;
+    if (!this.state.entry)
+      return;
+
+    (this.context as KeeData).updateEntry(
+      this.state.entry,
+      entry => {
+        entry.times.expires = !!date;
+        if (date) {
+          entry.times!.expiryTime = date;
+        }
       }
-    }, true);
+    );
   }
 
   get entryFields() {
@@ -289,7 +274,7 @@ class ItemDetailPanel extends Component<Props> {
                   className = {classes.titleIcon}
                   src={(this.context as KeeData).getCustomIcon(entry.customIcon.id)}>
                 </img>
-              : <SvgPath className = {classes.titleIcon} path = {DefaultKeeIcon.get(this.state.entry?.icon ?? 0)} />
+              : <SvgPath className = {classes.titleIcon} path = {DefaultKeeIcon.get(entry?.icon ?? 0)} />
             }
           </IconButton>
           <Input id = "Title"
@@ -326,16 +311,16 @@ class ItemDetailPanel extends Component<Props> {
             })
             .sort((a, b) => a.sortOrder as number - (b.sortOrder as number))
             .map(field =>
-              <>
+              <div key = {field[0]}>
                 <FieldInput
                   key = {entry.uuid.id + field[0]}
+                  entry = {entry}
                   fieldId = {field[0]}
                   inputValue = {field[1] instanceof ProtectedValue ? field[1].getText() : field[1]}
                   isProtected = {field.isProtected as boolean || field[1] instanceof ProtectedValue}
                   isMultiline = {field.isMultiline as boolean}
                   isCustomProperty = {field.sortOrder === 0}
-                  handleEntryUpdate = {this.updateEntityState}
-                  handleInputChange = {this.handleInputChange}
+                  onChange = {this.handleInputChange}
                 />
                 {field[0] === 'URL' &&
                   <Tooltip title = 'Add Custom Property' key = 'plusButton'>
@@ -348,7 +333,7 @@ class ItemDetailPanel extends Component<Props> {
                     </IconButton>
                   </Tooltip>
                 }
-              </>
+              </div>
             )
           }
 
@@ -395,7 +380,6 @@ class ItemDetailPanel extends Component<Props> {
             {entry instanceof KdbxEntry &&
               <AttachInput
                 entry = {entry}
-                handleEntryUpdate = {this.updateEntityState}
               />
             }
           </div>
@@ -413,24 +397,24 @@ class ItemDetailPanel extends Component<Props> {
           <IconChoicePanel
             panelAncor = {this.#iconPanelAncor}
             isPanelOpen = {this.state.isIconPanelOpen}
-            handleEntryUpdate = {this.updateEntityState}
+            entry = {entry}
             onClose = {() => this.setState({isIconPanelOpen: false})}
           />
         }
-        {this.#colorPanelAncor &&
+        {this.#colorPanelAncor && entry instanceof KdbxEntry &&
           <ColorChoicePanel
             panelAncor = {this.#colorPanelAncor}
             isPanelOpen = {this.state.isColorPanelOpen}
             onClose = {() => this.setState({isColorPanelOpen: false})}
-            handleEntryUpdate = {this.updateEntityState}
+            entry = {entry}
           />
         }
-        {this.#propertyPanelAncor &&
+        {this.#propertyPanelAncor && entry instanceof KdbxEntry &&
           <CustomPropertyPanel
             panelAncor = {this.#propertyPanelAncor}
             isPanelOpen = {this.state.isPropertyPanelOpen}
             onClose = {() => this.setState({isPropertyPanelOpen: false})}
-            handleEntryUpdate = {this.updateEntityState}
+            entry = {entry}
           />
         }
 

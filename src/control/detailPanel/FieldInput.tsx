@@ -12,7 +12,7 @@ import {
   withStyles,
   WithStyles
 } from '@material-ui/core';
-import { DefaultKeeIcon, KeeDataContext, SystemIcon } from '../../entity';
+import { DefaultKeeIcon, KeeData, KeeDataContext, SystemIcon } from '../../entity';
 import { SvgPath } from '../common';
 import { KdbxEntry, KdbxGroup, ProtectedValue } from 'kdbxweb';
 
@@ -23,13 +23,13 @@ const styles = (theme: Theme) =>  createStyles({
 })
 
 interface IFieldInputProps extends WithStyles<typeof styles> {
+  entry: KdbxEntry | KdbxGroup,
   fieldId: string,
   inputValue: string,
   isProtected: boolean,
   isMultiline: boolean,
   isCustomProperty: boolean,
-  handleInputChange: {(fieldId: string, inputValue: string, isProtected: boolean): void},
-  handleEntryUpdate: {(changeEntry: {(entry: KdbxEntry | KdbxGroup): void}, forceUpdate?: boolean): void},
+  onChange:(fieldId: string, value: string, isProtected: boolean) => void
 }
 
 class FieldInput extends React.Component<IFieldInputProps> {
@@ -37,7 +37,6 @@ class FieldInput extends React.Component<IFieldInputProps> {
   constructor(props: IFieldInputProps) {
     super(props);
     this.handlePropertyProtection = this.handlePropertyProtection.bind(this);
-
     this.handleDeleteProperty = this.handleDeleteProperty.bind(this);
   }
   #menuAnchor: Element | null = null
@@ -47,7 +46,9 @@ class FieldInput extends React.Component<IFieldInputProps> {
   }
 
   handlePropertyProtection() {
-    this.props.handleEntryUpdate(entry => {
+    (this.context as KeeData).updateEntry(
+      this.props.entry,
+      entry => {
       if (entry instanceof KdbxGroup) {
         return;
       }
@@ -55,16 +56,18 @@ class FieldInput extends React.Component<IFieldInputProps> {
         ? this.props.inputValue
         : ProtectedValue.fromString(this.props.inputValue);
       entry.fields.set(this.props.fieldId, field);
-    }, true);
+    });
     this.setState({isShowMenu: false, isShowText: this.props.isProtected});
   }
 
   handleDeleteProperty(fieldId: string) {
-    this.props.handleEntryUpdate(entry => {
+    (this.context as KeeData).updateEntry(
+      this.props.entry,
+      entry => {
       if (entry instanceof KdbxEntry) {
         entry.fields.delete(fieldId);
       }
-    }, true);
+    });
   }
 
   public render() {
@@ -114,7 +117,7 @@ class FieldInput extends React.Component<IFieldInputProps> {
           label = {fieldId}
           variant = "outlined"
           value = {inputValue}
-          onChange = {e => this.props.handleInputChange(fieldId, e.target.value, isProtected)}
+          onChange = {e => this.props.onChange(fieldId, e.target.value, isProtected)}
           InputProps = {adornment}
         />
         <Menu

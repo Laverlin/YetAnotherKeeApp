@@ -9,6 +9,7 @@ import { KeeData, KeeDataContext, SystemIcon } from "../../entity";
 import { SvgPath } from "../common";
 import SearchBox from "./SearchBox";
 import SortMenu from "./SortMenu";
+import { EntryChangedEvent } from "../../entity/KeeEvent";
 
 
 const styles = (theme: Theme) =>  createStyles({
@@ -32,22 +33,19 @@ const styles = (theme: Theme) =>  createStyles({
     button: {
       WebkitAppRegion:'no-drag',
       height: theme.customSize.topBar.height,
-      width: 46,
+      width: theme.customSize.topBar.height,
       borderRadius:0,
       "&:hover": {
         backgroundColor: theme.palette.primary.main
       },
-      padding:'16px'
     },
 
     buttonDisabled: {
       height: theme.customSize.topBar.height,
-      width: 46,
+      width: theme.customSize.topBar.height,
       borderRadius: 0,
-      padding:'16px',
       color: theme.palette.grey.A200
     },
-
 
     buttonClose: {
       "&:hover": {
@@ -69,8 +67,14 @@ const styles = (theme: Theme) =>  createStyles({
       width: 20
     },
 
+    space15: {
+      width: '15px',
+    },
+
     dbName: {
-      color: theme.palette.grey.A100
+      color: theme.palette.grey.A100,
+      paddingLeft: theme.spacing(2),
+      paddingRight: theme.spacing(1/4),
     },
 
     pushRight: {
@@ -119,20 +123,21 @@ class AppToolBar extends React.Component<Props>
   {
     super(props);
     this.handleMaximizeWindow = this.handleMaximizeWindow.bind(this);
-    this.handleDbChange = this.handleDbChange.bind(this);
+    this.handleEntryChanded = this.handleEntryChanded.bind(this);
     this.handleSave = this.handleSave.bind(this);
+    this.handleBackClick = this.handleBackClick.bind(this);
   }
 
   componentDidMount() {
-    (this.context as KeeData).addDbChangeListener(this.handleDbChange);
+    (this.context as KeeData).addEventListener(EntryChangedEvent, KeeData.anyEntryUuid, this.handleEntryChanded);
   }
 
   componentWillUnmount() {
-    (this.context as KeeData).removeDbChangeListener(this.handleDbChange);
+    (this.context as KeeData).removeEventListener(EntryChangedEvent, KeeData.anyEntryUuid, this.handleEntryChanded);
   }
 
-  handleDbChange(isDbChanged: boolean) {
-    this.setState({isDbChanged: isDbChanged});
+  handleEntryChanded(_: EntryChangedEvent) {
+    this.setState({isDbChanged: true});
   }
 
   handleMaximizeWindow() {
@@ -150,10 +155,14 @@ class AppToolBar extends React.Component<Props>
 
 	handleMenuClose = () => this.setState({ isPopOpen: false });
 
-  handleBackClick = () => this.props.history.goBack();
+  handleBackClick() {
+    this.setState({isDbChanged: false});
+    this.props.history.goBack();
+  }
 
   async handleSave() {
     await (this.context as KeeData).saveDb();
+    this.setState({isDbChanged: false});
   }
 
   render() {
@@ -164,31 +173,35 @@ class AppToolBar extends React.Component<Props>
 
         <Toolbar className = {classes.appBar}>
           <div className = {classes.resizer} />
-          <IconButton
-            color = "inherit"
-            className = {clsx(classes.button)}
-            onClick = {this.handleMenuOpen}
-            buttonRef = {node => { this.#menuAncor = node }}
-          >
-            <SvgPath className = {classes.icon20} path = {SystemIcon.menuThin} />
-          </IconButton>
+
 
           {(history.location.pathname != '/') &&
             <>
+              <Typography className = {classes.dbName}> {'/// ' + (this.context as KeeData).dbName}</Typography>
+              <div className = {classes.space15}>
+                {this.state.isDbChanged && <Typography variant='h5'>*</Typography>}
+              </div>
               <Tooltip title = {'Save ' + (this.context as KeeData).dbName}>
                 <IconButton
                   color = "inherit"
-                  className = {clsx(classes.pushRight, this.state.isDbChanged ? classes.button : classes.buttonDisabled)}
+                  className = {clsx(this.state.isDbChanged ? classes.button : classes.buttonDisabled)}
                   onClick = {this.handleSave}
                 >
                   <SvgPath className = {classes.icon20} path = {SystemIcon.save} />
                 </IconButton>
               </Tooltip>
-              <Typography className = {classes.dbName}> {(this.context as KeeData).dbName}</Typography>
-              <div style={{width:'30px'}}>
-                {this.state.isDbChanged && <Typography variant='h5'>&nbsp;*</Typography>}
+              <Tooltip title = {'Open another file'}>
+                <IconButton
+                  color = "inherit"
+                  className = {classes.button}
+                  onClick = {this.handleBackClick}
+                >
+                  <SvgPath className = {classes.icon20} path = {SystemIcon.openFile} />
+                </IconButton>
+              </Tooltip>
+              <div className = {classes.pushRight}>
+                <SearchBox />
               </div>
-              <SearchBox />
               <SortMenu buttonClassName = {classes.button}/>
             </>
           }

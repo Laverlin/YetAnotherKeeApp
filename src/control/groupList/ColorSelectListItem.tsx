@@ -29,19 +29,19 @@ class ColorSelectListItem extends React.Component<Props> {
       DefaultColors.blue,
       DefaultColors.purple
     ],
-    selectedColor: '',
     isShowColorSelection: false,
   }
 
-  handleColorSelect(selectedColor: string) {
-    this.setState({selectedColor: selectedColor});
-    this.keeData.notifyColorFilterSubscribers(selectedColor);
+  handleSetColor(color: string) {
+    this.keeData.entryFilter.colorFilter = color;
+    this.forceUpdate();
   }
 
   render()
   {
     const { classes }  = this.props;
-    const { colors, selectedColor, isShowColorSelection } = this.state;
+    const { colors, isShowColorSelection } = this.state;
+    const { entryFilter } = this.keeData;
 
     return (
       <ListItem
@@ -50,7 +50,7 @@ class ColorSelectListItem extends React.Component<Props> {
       onMouseLeave = {() => this.setState({isShowColorSelection: false})}
     >
       <ListItemIcon className = {classes.icon}>
-        <SvgPath path = {SystemIcon.colorFilled} style = {{color: selectedColor}} />
+        <SvgPath path = {SystemIcon.colorFilled} style = {{color: entryFilter.colorFilter}} />
       </ListItemIcon>
       <ListItemText
         classes = {{primary:classes.listItemText, secondary:classes.listItemSubText}}
@@ -61,9 +61,9 @@ class ColorSelectListItem extends React.Component<Props> {
 
       <div className = {classes.colorSelector} hidden = {!isShowColorSelection} >
         <IconButton
-          style= {{color: selectedColor }}
+          style= {{color: entryFilter.colorFilter }}
           className = {clsx(classes.icon, classes.colorIcon)}
-          onClick = {() => this.handleColorSelect('')}
+          onClick = {() => this.handleSetColor('')}
         >
           <SvgPath path = {SystemIcon.colorFilled} />
         </IconButton>
@@ -71,7 +71,7 @@ class ColorSelectListItem extends React.Component<Props> {
           <IconButton
             key = {color}
             className = {classes.colorIcon}
-            onClick = {() => this.handleColorSelect(color)}
+            onClick = {() => this.handleSetColor(color)}
           >
             <SvgPath
               path = {SystemIcon.colorEmpty}
