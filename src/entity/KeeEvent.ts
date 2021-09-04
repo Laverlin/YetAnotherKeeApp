@@ -1,8 +1,9 @@
+import { Data } from "electron/common";
 import { KdbxUuid } from "kdbxweb";
 import { KeeData } from ".";
 
 export class KeeEvent {
-  
+
   entryId: KdbxUuid = new KdbxUuid()
 
   static createFilterEvent(color?: string, tags?: string[], query?: string): FilterChangedEvent {
@@ -32,6 +33,12 @@ export class KeeEvent {
     event.entryId = entryUuid;
     return event;
   }
+
+  static createDatabaseSavedEvent(): DatabaseSavedEvent  {
+    let event = new DatabaseSavedEvent()
+    event.entryId = KeeData.anyEntryUuid;
+    return event;
+  }
 }
 
 export class EntryChangedEvent extends KeeEvent {
@@ -39,6 +46,10 @@ export class EntryChangedEvent extends KeeEvent {
 }
 
 export class GroupSelectedEvent extends KeeEvent {
+
+}
+
+export class DatabaseSavedEvent extends KeeEvent {
 
 }
 

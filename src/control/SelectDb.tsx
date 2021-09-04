@@ -1,7 +1,7 @@
 import React from "react";
 import { RouteComponentProps, withRouter } from "react-router-dom";
 import { createStyles, WithStyles, withStyles, Theme } from "@material-ui/core/styles";
-import { IconButton, InputAdornment, TextField, Typography } from "@material-ui/core";
+import { IconButton, InputAdornment, List, ListItem, ListItemIcon, ListItemText, TextField, Typography } from "@material-ui/core";
 import { DefaultKeeIcon, SystemIcon } from "../entity/GlobalObject";
 import { remote } from "electron";
 import KeeData from "../entity/KeeData";
@@ -9,6 +9,7 @@ import { KeeDataContext } from "../entity/Context";
 import path from "path";
 import { SvgPath } from "./common/SvgPath";
 import { ProtectedValue } from "kdbxweb";
+import { SettingStorage, UserSetting } from "../entity/ConfigStorage";
 
 
 const styles = (theme: Theme) =>  createStyles({
@@ -48,11 +49,42 @@ const styles = (theme: Theme) =>  createStyles({
     height: '75px'
   },
 
+  recentFilesRow: {
+    height: theme.spacing(5),
+    width: '100%',
+    '&:hover': {
+      '& $clearButton': {
+        display: 'block'
+      }
+    }
+  },
+
+  clearButton: {
+    display:'none',
+  },
+
+  selectedFile: {
+    height: '30px',
+    display:'flex',
+    alignItems:'center',
+    marginBottom:'20px'
+  },
+
+  selectedFileIcon: {
+    height:15,
+    width:15,
+    marginRight:'40px',
+    marginLeft:'20px'
+  }
+
 });
 
 interface Props extends WithStyles<typeof styles>, RouteComponentProps {}
 
 class SelectDb extends React.Component<Props> {
+
+  #setttingStorage = new SettingStorage(UserSetting);
+  #userSetting: UserSetting = this.#setttingStorage.loadSettings();
 
   state = {
     isShowPassword: false,
@@ -77,6 +109,20 @@ class SelectDb extends React.Component<Props> {
     });
   }
 
+  handleFileRemove(event: React.MouseEvent<HTMLButtonElement>, file: string) {
+    event.stopPropagation();
+    this.#userSetting.recentFiles = this.#userSetting.recentFiles.filter(f => f !== file);
+    this.#setttingStorage.saveSettings(this.#userSetting);
+    this.forceUpdate();
+  }
+
+  updateRecentFiles(file: string) {
+    this.#userSetting.recentFiles = this.#userSetting.recentFiles.filter(f => f !== file);
+    if (this.#userSetting.recentFiles.unshift(file) > 8)
+      this.#userSetting.recentFiles.pop();
+    this.#setttingStorage.saveSettings(this.#userSetting);
+  }
+
   handleKeyPress = (event: React.KeyboardEvent<HTMLFormElement>) => {
     if (event.key === 'Enter') {
       this.handleEnterPassword();
@@ -87,11 +133,9 @@ class SelectDb extends React.Component<Props> {
   handleEnterPassword = async () => {
     if (this.state.selectedFile) {
       const keeData = (this.context as KeeData);
-      keeData.clearDb();
-      keeData.dbFullPath = this.state.selectedFile;
-      keeData.password = ProtectedValue.fromString(this.state.password);
-      try{
-        await keeData.loadDb();
+      try {
+        await keeData.loadDb(this.state.selectedFile, ProtectedValue.fromString(this.state.password));
+        this.updateRecentFiles(this.state.selectedFile);
         this.props.history.push("/app");
       }
       catch (error) {
@@ -103,9 +147,13 @@ class SelectDb extends React.Component<Props> {
     }
   }
 
+  handleFileSelect(selectedFile: string) {
+    this.setState({selectedFile: selectedFile, error: '', password: ''});
+  }
 
   render() {
     const { classes }  = this.props;
+
     return(
       <>
         <form
@@ -157,7 +205,37 @@ class SelectDb extends React.Component<Props> {
                 <SvgPath className = {classes.icon50} path = {SystemIcon.enterKey} />
               </IconButton>
             </div>
-            <Typography variant="caption">{this.state.selectedFile}</Typography>
+            <div className = {classes.selectedFile}>
+              {this.state.selectedFile&&
+                <>
+                <SvgPath path = {SystemIcon.cone_right} className = {classes.selectedFileIcon} />
+                <Typography variant="caption">{this.state.selectedFile}</Typography>
+                </>
+              }
+            </div>
+            <List>
+            {this.#userSetting.recentFiles.map(file =>
+              <ListItem
+                button
+                key = {file}
+                className = {classes.recentFilesRow}
+                onClick = {() => this.handleFileSelect(file)}
+              >
+                <ListItemIcon>
+                  <SvgPath path = {DefaultKeeIcon.database} />
+                </ListItemIcon>
+                <ListItemText>
+                  <Typography variant = "body1">{file}</Typography>
+                </ListItemText>
+
+                  <IconButton onClick = {e => this.handleFileRemove(e, file)} className = {classes.clearButton}>
+                    <SvgPath path = {SystemIcon.clear} />
+                  </IconButton>
+
+              </ListItem>
+
+            )}
+            </List>
           </div>
         </form>
       </>

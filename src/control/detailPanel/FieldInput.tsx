@@ -29,6 +29,7 @@ interface IFieldInputProps extends WithStyles<typeof styles> {
   isProtected: boolean,
   isMultiline: boolean,
   isCustomProperty: boolean,
+  disabled: boolean,
   onChange:(fieldId: string, value: string, isProtected: boolean) => void
 }
 
@@ -78,6 +79,7 @@ class FieldInput extends React.Component<IFieldInputProps> {
       isProtected,
       isCustomProperty,
       isMultiline,
+      disabled
     }  = this.props;
 
     const adornment = {
@@ -88,6 +90,7 @@ class FieldInput extends React.Component<IFieldInputProps> {
               ref = {node => {this.#menuAnchor = node}}
               aria-label="context menu"
               onClick = {() => this.setState({isShowMenu: true})}
+              disabled = {disabled}
             >
               <SvgIcon><path d={SystemIcon.dot_hamburger}/></SvgIcon>
             </IconButton>
@@ -110,6 +113,7 @@ class FieldInput extends React.Component<IFieldInputProps> {
     return (
       <div className = {classes.fieldInput}>
         <TextField
+          disabled = {disabled}
           id = {fieldId}
           fullWidth
           multiline = {isMultiline}

@@ -132,6 +132,10 @@ const styles = (theme: Theme) =>  createStyles({
     paddingBottom: theme.spacing(1/2),
   },
 
+  titleFolder: {
+    fontWeight: 'bold'
+  }
+
 });
 
 interface IEntryListItemProps extends WithStyles<typeof styles>{
@@ -217,9 +221,8 @@ class EntryListItem extends React.Component<IEntryListItemProps, IEntryListItemS
             clsx(classes.listItem, isSelected && classes.listItemSelected)
           }
         >
-          {entry instanceof KdbxEntry &&
-            <div style={{width:'8px', background: entry.bgColor }}/>
-          }
+          <div style={{width:'8px', background: entry instanceof KdbxEntry ? entry.bgColor : '' }}/>
+
           <div
             className = {clsx(classes.mainIconDiv, classes.copyCursor)}
             onDoubleClick = {() => this.props.onCopy('Password', entry as KdbxEntry)}
@@ -235,7 +238,7 @@ class EntryListItem extends React.Component<IEntryListItemProps, IEntryListItemS
           </div>
           <div className = {classes.itemContent}>
             <div className = {classes.itemContentRow}>
-              <div className={classes.title}>{this.entryTitle}</div>
+              <div className={clsx(classes.title, entry instanceof KdbxGroup && classes.titleFolder)}>{this.entryTitle}</div>
               {entry.times.expires &&
                 <div className={clsx(classes.titleSecondary, classes.flexAlignRight)}>
                   <SvgPath className={classes.inlineLeftIcon} path = {SystemIcon.expire} />

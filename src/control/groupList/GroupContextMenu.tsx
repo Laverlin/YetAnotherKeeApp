@@ -1,7 +1,8 @@
 import { Divider, ListItemIcon, Menu, MenuItem, withStyles } from '@material-ui/core';
 import { KdbxUuid } from 'kdbxweb';
 import * as React from 'react';
-import { DefaultKeeIcon, KeeData, KeeDataContext } from '../../entity';
+import { DefaultKeeIcon, KeeData, KeeDataContext, SystemIcon } from '../../entity';
+import { MoveDirection } from '../../entity/KeeData';
 import { SvgPath } from '../common';
 import { groupListStyles } from './groupListStyles';
 
@@ -61,6 +62,34 @@ class GroupContextMenu extends React.Component<IGroupContextMenuProps, IGroupCon
               <SvgPath path = {DefaultKeeIcon['folder-o']} />
           </ListItemIcon>
           Create Group
+        </MenuItem>
+
+        <Divider />
+
+        <MenuItem
+          disabled = {groupUuid.equals((this.context as KeeData).database.getDefaultGroup().uuid)}
+          onClick = {() => {
+            this.setState({isContextMenuOpen: false});
+            (this.context as KeeData).moveGroupStep(groupUuid, MoveDirection.Up);
+          }}
+        >
+          <ListItemIcon>
+              <SvgPath path = {SystemIcon.cone_up} />
+          </ListItemIcon>
+          Move Up
+        </MenuItem>
+
+        <MenuItem
+          disabled = {groupUuid.equals((this.context as KeeData).database.getDefaultGroup().uuid)}
+          onClick = {() => {
+            this.setState({isContextMenuOpen: false});
+            (this.context as KeeData).moveGroupStep(groupUuid, MoveDirection.Down);
+          }}
+        >
+          <ListItemIcon>
+              <SvgPath path = {SystemIcon.cone_down} />
+          </ListItemIcon>
+          Move Down
         </MenuItem>
 
         <Divider />

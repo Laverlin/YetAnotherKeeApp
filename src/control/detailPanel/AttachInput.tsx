@@ -67,7 +67,8 @@ const styles = (theme: Theme) =>  createStyles({
 })
 
 interface IAttachInputProps extends WithStyles<typeof styles> {
-  entry: KdbxEntry
+  entry: KdbxEntry,
+  disabled: boolean
 }
 
 class AttachInput extends React.Component<IAttachInputProps> {
@@ -125,7 +126,7 @@ class AttachInput extends React.Component<IAttachInputProps> {
   }
 
   public render() {
-    const { classes, entry }  = this.props;
+    const { classes, entry, disabled }  = this.props;
     return (
       <div className = {classes.outlined} >
         <Typography variant="caption" className = {classes.outlinedCaption}>&nbsp;Attached&nbsp;</Typography>
@@ -138,7 +139,7 @@ class AttachInput extends React.Component<IAttachInputProps> {
                   size = "small"
                   label = {k}
                   onDoubleClick = {()=>{this.handleSaveAttachment(k)}}
-                  onDelete = {()=>{this.handleDeleteAttachment(k)}}
+                  onDelete = {disabled ? undefined : () => {this.handleDeleteAttachment(k)}}
                 />
               </Tooltip>
             )
@@ -151,7 +152,12 @@ class AttachInput extends React.Component<IAttachInputProps> {
 
           }
           <div style = {{marginLeft:'auto'}}>
-            <IconButton onClick = {this.handleAddAttachment}><SvgPath path = {SystemIcon.attachFile} /></IconButton>
+            <IconButton
+              disabled = {disabled}
+              onClick = {this.handleAddAttachment}
+            >
+                <SvgPath path = {SystemIcon.attachFile} />
+            </IconButton>
           </div>
         </div>
       </div>

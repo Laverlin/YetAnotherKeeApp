@@ -2,7 +2,7 @@ import clsx from "clsx";
 import React from "react";
 import { createStyles, Theme, Typography,  withStyles, WithStyles} from "@material-ui/core";
 
-import { KdbxEntry, ProtectedValue} from "kdbxweb";
+import { KdbxEntry, KdbxGroup, ProtectedValue} from "kdbxweb";
 import { KeeData, KeeDataContext, DefaultFields} from "../../entity";
 import { scrollBar } from "../common";
 import { compareAsc } from "date-fns";
@@ -38,7 +38,7 @@ class EntryListPanel extends React.Component<Props> {
   #keeData: KeeData = this.context;
 
   state = {
-    entries: [] as KdbxEntry[],
+    entries: [] as (KdbxEntry | KdbxGroup)[],
     sortField: 'Title',
   }
 
@@ -69,10 +69,15 @@ class EntryListPanel extends React.Component<Props> {
   // get the list of entries form the new group
   //
   handleGroupSelected(keeEvent: GroupSelectedEvent) {
-    if (keeEvent.entryId === KeeData.allGroupUuid) {
-      this.setState({entries: Array.from<KdbxEntry>(
-        this.#keeData.database.getDefaultGroup().allEntries()
-      )});
+    if (keeEvent.entryId.equals(KeeData.allGroupUuid)) {
+      this.setState({entries: this.#keeData.allEntries});
+      return;
+    }
+    if (keeEvent.entryId.equals(this.#keeData.recycleBinUuid)) {
+      this.setState({
+        entries: Array.from(this.#keeData.recycleBinGroup.allGroupsAndEntries())
+          .filter(e => !e.uuid.equals(this.#keeData.recycleBinUuid))
+      });
       return;
     }
     const selectedGroup = this.#keeData.database.getGroup(keeEvent.entryId);
@@ -110,13 +115,13 @@ class EntryListPanel extends React.Component<Props> {
     }
   }
 
-  filter(entry: KdbxEntry): boolean {
+  filter(entry: KdbxEntry | KdbxGroup): boolean {
     let filter = true;
-    if (this.#keeData.entryFilter.queryFilter) {
+    if (this.#keeData.entryFilter.queryFilter && entry instanceof KdbxEntry) {
       filter = !!Array.from(entry.fields.values())
         .find(v => v.includes(this.#keeData.entryFilter.queryFilter));
     }
-    if (this.#keeData.entryFilter.colorFilter) {
+    if (this.#keeData.entryFilter.colorFilter && entry instanceof KdbxEntry) {
        filter = filter && entry.bgColor === this.#keeData.entryFilter.colorFilter;
     }
     if (this.#keeData.entryFilter.tagFilter.length > 0) {
@@ -125,7 +130,7 @@ class EntryListPanel extends React.Component<Props> {
     return filter;
   }
 
-  sort(entryA: KdbxEntry, entryB: KdbxEntry) {
+  sort(entryA: KdbxEntry | KdbxGroup, entryB: KdbxEntry | KdbxGroup) {
     const sortingField = this.#keeData.entryFilter.sortField;
     if (sortingField === 'creationTime') {
       const timeA = entryA.times.creationTime;
@@ -133,17 +138,21 @@ class EntryListPanel extends React.Component<Props> {
       if (!timeA || !timeB) {return -1}
       return  compareAsc(timeA, timeB);
     }
-    const fieldA: string = entryA.fields.get(sortingField) as string || '';
-    const fieldB: string = entryB.fields.get(sortingField) as string || '';
+    if (entryA instanceof KdbxGroup || entryB instanceof KdbxGroup)
+      return 0;
+
+    const fieldA = entryA.fields.get(sortingField) as string || '';
+    const fieldB = entryB.fields.get(sortingField) as string || '';
     return fieldA.localeCompare(fieldB);
   }
 
 
   render(){
-    const { classes } = this.props;
-    const { entries } = this.state;
 
-    if (entries.length === 0) {
+    const { classes } = this.props;
+    const filteredEntries = this.state.entries.filter(this.filter);
+
+    if (filteredEntries.length === 0) {
       return (
         <Typography variant='h2' className = {classes.emptySplash}>
           No Items <br />
@@ -159,8 +168,7 @@ class EntryListPanel extends React.Component<Props> {
           handleCopy = {this.handleCopy}
         />
         <div className = {clsx(classes.list, classes.scrollBar)}>
-          {entries
-            .filter(this.filter)
+          {filteredEntries
             .sort(this.sort)
             .map(entry =>
               <EntryListItem

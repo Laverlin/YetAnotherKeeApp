@@ -15,6 +15,8 @@ import { app, BrowserWindow, Menu } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 
+import { AppSetting, SettingStorage } from './entity/ConfigStorage';
+
 export default class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
@@ -50,6 +52,8 @@ const installExtensions = async () => {
     .catch(console.log);
 };
 
+const appSetting = new SettingStorage(AppSetting);
+
 const createWindow = async () => {
   if (
     process.env.NODE_ENV === 'development' ||
@@ -66,11 +70,14 @@ const createWindow = async () => {
     return path.join(RESOURCES_PATH, ...paths);
   };
 
+  const setting = appSetting.loadSettings();
+  let { width, height } = setting.windowSize;
+
   Menu.setApplicationMenu(null);
   mainWindow = new BrowserWindow({
     show: false,
-    width: 1350,
-    height: 800,
+    width: width,
+    height: height,
     minWidth: 1100,
     minHeight: 300,
     frame: false,
@@ -79,6 +86,12 @@ const createWindow = async () => {
       nodeIntegration: true,
       enableRemoteModule: true,
     },
+  });
+
+  mainWindow.on('resize', () => {
+    let { width, height } = mainWindow!.getBounds();
+    setting.windowSize = {width, height};
+    appSetting.saveSettings(setting);
   });
 
   mainWindow.loadURL(`file://${__dirname}/index.html`);
@@ -95,6 +108,7 @@ const createWindow = async () => {
       mainWindow.show();
       mainWindow.focus();
     }
+
   });
 
   mainWindow.on('closed', () => {

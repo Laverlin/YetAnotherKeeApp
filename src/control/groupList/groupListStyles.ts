@@ -24,6 +24,8 @@ export const groupListStyles = (theme: Theme) =>  createStyles({
     paddingRight: theme.spacing(1),
     '&:hover, &:focus': {
       backgroundColor: 'rgba(170, 170, 170, 0.2)',
+    },
+    '&:hover': {
       '& $menuButtonDiv': {
         display: 'block'
       }
