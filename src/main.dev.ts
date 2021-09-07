@@ -15,7 +15,7 @@ import { app, BrowserWindow, Menu } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 
-import { AppSetting, SettingStorage } from './entity/ConfigStorage';
+import { AppSetting, Setting } from './entity/SettingStorage';
 
 export default class AppUpdater {
   constructor() {
@@ -52,7 +52,7 @@ const installExtensions = async () => {
     .catch(console.log);
 };
 
-const appSetting = new SettingStorage(AppSetting);
+
 
 const createWindow = async () => {
   if (
@@ -70,8 +70,8 @@ const createWindow = async () => {
     return path.join(RESOURCES_PATH, ...paths);
   };
 
-  const setting = appSetting.loadSettings();
-  let { width, height } = setting.windowSize;
+  const appSetting = Setting.load(AppSetting);
+  let { width, height } = appSetting.windowSize;
 
   Menu.setApplicationMenu(null);
   mainWindow = new BrowserWindow({
@@ -81,7 +81,7 @@ const createWindow = async () => {
     minWidth: 1100,
     minHeight: 300,
     frame: false,
-    icon: getAssetPath('privacy.png'),
+    icon: getAssetPath('icon.ico'),
     webPreferences: {
       nodeIntegration: true,
       enableRemoteModule: true,
@@ -89,9 +89,8 @@ const createWindow = async () => {
   });
 
   mainWindow.on('resize', () => {
-    let { width, height } = mainWindow!.getBounds();
-    setting.windowSize = {width, height};
-    appSetting.saveSettings(setting);
+    appSetting.windowSize = mainWindow!.getBounds();
+    appSetting.save();
   });
 
   mainWindow.loadURL(`file://${__dirname}/index.html`);

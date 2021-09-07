@@ -39,21 +39,24 @@ export class KeeEvent {
     event.entryId = KeeData.anyEntryUuid;
     return event;
   }
+
+  get eventName(): string {return 'keeEvent'}
 }
 
 export class EntryChangedEvent extends KeeEvent {
-
+  get eventName(): string {return 'EntryChangedEvent'}
 }
 
 export class GroupSelectedEvent extends KeeEvent {
-
+  get eventName(): string {return 'GroupSelectedEvent'}
 }
 
 export class DatabaseSavedEvent extends KeeEvent {
-
+  get eventName(): string {return 'DatabaseSavedEvent'}
 }
 
 export class EntrySelectedEvent extends KeeEvent {
+  get eventName(): string {return 'EntrySelectedEvent'}
 
   // defined is this event about remove selection (true)
   // or set new selection (false)
@@ -62,6 +65,8 @@ export class EntrySelectedEvent extends KeeEvent {
 }
 
 export class FilterChangedEvent extends KeeEvent {
+  get eventName(): string {return 'FilterChangedEvent'}
+
   color: string = '';
   tags: string[] = [];
   query: string = '';
@@ -69,7 +74,7 @@ export class FilterChangedEvent extends KeeEvent {
 
 export class KeeEventDescriptor<T extends KeeEvent> {
   constructor(keeEventType: new() => T, entryId: KdbxUuid, listener: (event: T) => void) {
-    this.#tName = keeEventType.name;
+    this.#tName = new keeEventType().eventName;
     this.entryId = entryId;
     this.listener = listener;
   }

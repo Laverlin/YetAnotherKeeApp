@@ -3,7 +3,7 @@ import { createStyles, GridList, GridListTile, IconButton,  Popover, Theme,  Wit
 import { DefaultColors, KeeData, KeeDataContext, SystemIcon } from '../../entity';
 import { SvgPath, scrollBar } from '../common';
 import clsx from 'clsx';
-import {  KdbxEntry, KdbxGroup} from 'kdbxweb';
+import {  KdbxEntry} from 'kdbxweb';
 
 const styles = (theme: Theme) =>  createStyles({
   root: {

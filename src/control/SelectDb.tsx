@@ -1,7 +1,16 @@
 import React from "react";
 import { RouteComponentProps, withRouter } from "react-router-dom";
 import { createStyles, WithStyles, withStyles, Theme } from "@material-ui/core/styles";
-import { IconButton, InputAdornment, List, ListItem, ListItemIcon, ListItemText, TextField, Typography } from "@material-ui/core";
+import {
+  IconButton,
+  InputAdornment,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  TextField,
+  Typography
+} from "@material-ui/core";
 import { DefaultKeeIcon, SystemIcon } from "../entity/GlobalObject";
 import { remote } from "electron";
 import KeeData from "../entity/KeeData";
@@ -9,7 +18,7 @@ import { KeeDataContext } from "../entity/Context";
 import path from "path";
 import { SvgPath } from "./common/SvgPath";
 import { ProtectedValue } from "kdbxweb";
-import { SettingStorage, UserSetting } from "../entity/ConfigStorage";
+import { Setting, UserSetting } from "../entity/SettingStorage";
 
 
 const styles = (theme: Theme) =>  createStyles({
@@ -83,8 +92,7 @@ interface Props extends WithStyles<typeof styles>, RouteComponentProps {}
 
 class SelectDb extends React.Component<Props> {
 
-  #setttingStorage = new SettingStorage(UserSetting);
-  #userSetting: UserSetting = this.#setttingStorage.loadSettings();
+  #userSetting: UserSetting = Setting.load(UserSetting);
 
   state = {
     isShowPassword: false,
@@ -112,7 +120,8 @@ class SelectDb extends React.Component<Props> {
   handleFileRemove(event: React.MouseEvent<HTMLButtonElement>, file: string) {
     event.stopPropagation();
     this.#userSetting.recentFiles = this.#userSetting.recentFiles.filter(f => f !== file);
-    this.#setttingStorage.saveSettings(this.#userSetting);
+    //this.#setttingStorage.saveSettings(this.#userSetting);
+    this.#userSetting.save();
     this.forceUpdate();
   }
 
@@ -120,7 +129,8 @@ class SelectDb extends React.Component<Props> {
     this.#userSetting.recentFiles = this.#userSetting.recentFiles.filter(f => f !== file);
     if (this.#userSetting.recentFiles.unshift(file) > 8)
       this.#userSetting.recentFiles.pop();
-    this.#setttingStorage.saveSettings(this.#userSetting);
+    //this.#setttingStorage.saveSettings(this.#userSetting);
+    this.#userSetting.save()
   }
 
   handleKeyPress = (event: React.KeyboardEvent<HTMLFormElement>) => {
@@ -141,7 +151,7 @@ class SelectDb extends React.Component<Props> {
       catch (error) {
         const errorMsg = (error.code === 'InvalidKey')
           ? 'Wrong Password'
-          : error.message;
+          : error.message ? error.message : error;
         this.setState({error: errorMsg});
       }
     }

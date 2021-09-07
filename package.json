@@ -1,6 +1,6 @@
 {
   "name": "yet-another-kee-app",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "productName": "YetAnotherKeeApp",
   "description": "Yet another applucation to work with KeePass files (.kdbx)",
   "scripts": {
@@ -69,7 +69,14 @@
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "installerIcon": "icon.ico",
+      "uninstallerIcon": "icon.ico",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     },
     "linux": {
       "target": [

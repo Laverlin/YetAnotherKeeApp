@@ -13,7 +13,7 @@ import MainFrame from './control/MainFrame';
 import MainLayout from './control/MainLayout';
 import { ThemeProvider } from '@material-ui/core';
 import { appTheme } from './appTheme';
-import { ipcRenderer } from 'electron';
+
 
 const keeData = new KeeData();
 

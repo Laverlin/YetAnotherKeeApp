@@ -2,7 +2,7 @@ import clsx from "clsx";
 import React from "react";
 import { createStyles, Theme, Typography,  withStyles, WithStyles} from "@material-ui/core";
 
-import { KdbxEntry, KdbxGroup, ProtectedValue} from "kdbxweb";
+import { KdbxEntry, KdbxEntryField, KdbxGroup, ProtectedValue} from "kdbxweb";
 import { KeeData, KeeDataContext, DefaultFields} from "../../entity";
 import { scrollBar } from "../common";
 import { compareAsc } from "date-fns";
@@ -118,8 +118,9 @@ class EntryListPanel extends React.Component<Props> {
   filter(entry: KdbxEntry | KdbxGroup): boolean {
     let filter = true;
     if (this.#keeData.entryFilter.queryFilter && entry instanceof KdbxEntry) {
-      filter = !!Array.from(entry.fields.values())
-        .find(v => v.includes(this.#keeData.entryFilter.queryFilter));
+      filter = !!entry.fields.findValue<KdbxEntryField>(v =>
+        v.toString().toLowerCase().includes(this.#keeData.entryFilter.queryFilter.toLowerCase())
+      );
     }
     if (this.#keeData.entryFilter.colorFilter && entry instanceof KdbxEntry) {
        filter = filter && entry.bgColor === this.#keeData.entryFilter.colorFilter;

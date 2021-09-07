@@ -43,7 +43,7 @@ class GroupListPanel extends React.Component<IGroupListProps> {
     this.keeData.removeEventListener(DatabaseSavedEvent, KeeData.anyEntryUuid, this.handleSelectGroup);
   }
 
-  handleSelectGroup(_: GroupSelectedEvent | DatabaseSavedEvent) {
+  async handleSelectGroup(_: GroupSelectedEvent | DatabaseSavedEvent) {
     this.forceUpdate();
   }
 

@@ -31,6 +31,7 @@ interface IFieldInputProps extends WithStyles<typeof styles> {
   isCustomProperty: boolean,
   disabled: boolean,
   onChange:(fieldId: string, value: string, isProtected: boolean) => void
+  onShowPassPanel: (passAnchor: Element | null) => void
 }
 
 class FieldInput extends React.Component<IFieldInputProps> {
@@ -41,6 +42,7 @@ class FieldInput extends React.Component<IFieldInputProps> {
     this.handleDeleteProperty = this.handleDeleteProperty.bind(this);
   }
   #menuAnchor: Element | null = null
+  #passPanelAnchor: Element | null = null
   state = {
     isShowText: !this.props.isProtected,
     isShowMenu: false
@@ -85,6 +87,17 @@ class FieldInput extends React.Component<IFieldInputProps> {
     const adornment = {
       endAdornment: (
         <InputAdornment position="end">
+          {isProtected &&
+            <IconButton
+              aria-label="toggle text visibility"
+              onClick = {() => this.setState({isShowText: !this.state.isShowText})}
+            >
+              {this.state.isShowText
+                    ? <SvgIcon><path d={SystemIcon.visibilityOn}/></SvgIcon>
+                    : <SvgIcon><path d={SystemIcon.visibilityOff}/></SvgIcon>
+              }
+            </IconButton>
+          }
           {isCustomProperty &&
             <IconButton
               ref = {node => {this.#menuAnchor = node}}
@@ -95,15 +108,14 @@ class FieldInput extends React.Component<IFieldInputProps> {
               <SvgIcon><path d={SystemIcon.dot_hamburger}/></SvgIcon>
             </IconButton>
           }
-          {isProtected &&
+          {fieldId === 'Password' &&
             <IconButton
-              aria-label="toggle text visibility"
-              onClick = {() => this.setState({isShowText: !this.state.isShowText})}
+              ref = {node => {this.#passPanelAnchor = node}}
+              aria-label="password panel"
+              onClick = {() => this.props.onShowPassPanel(this.#passPanelAnchor)}
+              disabled = {disabled}
             >
-              {this.state.isShowText
-                    ? <SvgIcon><path d={SystemIcon.visibilityOn}/></SvgIcon>
-                    : <SvgIcon><path d={SystemIcon.visibilityOff}/></SvgIcon>
-              }
+              <SvgIcon><path d={SystemIcon.dot_hamburger}/></SvgIcon>
             </IconButton>
           }
         </InputAdornment>

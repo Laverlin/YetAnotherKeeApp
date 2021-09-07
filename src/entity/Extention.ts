@@ -1,4 +1,5 @@
-import { KdbxUuid } from "kdbxweb";
+import { KdbxEntry, KdbxUuid } from "kdbxweb";
+import { findAllInRenderedTree } from "react-dom/test-utils";
 
 
 export class KdbxUuidFactory {
@@ -25,4 +26,47 @@ export class KdbxUuidFactory {
     return new Uint8Array(buffer);
   }
 }
+
+declare global {
+  export interface IterableIterator<T> {
+      find<T>(predicate: (item: T) => boolean): T
+  }
+
+  export interface Map<K, V> {
+    findValue<V>(predicate: (item: V) => boolean): V | undefined
+  }
+}
+
+export function findFirst<T>(iterable: IterableIterator<T>, predicate: (item: T) => boolean): T | undefined {
+  for(const item of iterable) {
+    if (predicate(item))
+      return item;
+  }
+  return undefined
+}
+
+export function findFirstOrDefault<T>(iterable: IterableIterator<T>, predicate: (item: T) => boolean, dflt: T): T {
+  return findFirst(iterable, predicate) || dflt;
+}
+
+
+Map.prototype.findValue = function<K, V>(this: Map<K, V>, predicate: (item: V) => boolean): V | undefined {
+  for(const item of this.values()) {
+    if (predicate(item))
+      return item;
+  }
+  return undefined
+}
+
+
+
+/*
+IterableIterator.prototype.find = function<T>(this: IterableIterator<T>, predicate: (item: T) => boolean): T | undefined  {
+  for(const item of this) {
+    if (predicate(item))
+      return item;
+  }
+  return undefined
+}
+*/
 

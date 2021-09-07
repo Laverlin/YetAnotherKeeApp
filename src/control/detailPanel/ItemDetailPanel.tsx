@@ -38,6 +38,7 @@ import IconChoicePanel from "./IconChoicePanel";
 import ColorChoicePanel from "./ColorChoicePanel";
 import CustomPropertyPanel from "./CustomPropertyPanel";
 import { EntryChangedEvent, EntrySelectedEvent, GroupSelectedEvent } from "../../entity/KeeEvent";
+import PasswordGeneratorPanel from "./PasswordGeneratorPanel";
 
 const styles = (theme: Theme) =>  createStyles({
 
@@ -140,12 +141,14 @@ class ItemDetailPanel extends Component<Props> {
     isIconPanelOpen: false,
     isColorPanelOpen: false,
     isPropertyPanelOpen: false,
+    isPasswordPanelOpen: false,
     historyIndex: 0,
     isInHistory: false
   }
   #iconPanelAncor: Element | null = null;
   #colorPanelAncor: Element | null = null;
   #propertyPanelAncor: Element | null = null;
+  #passwordPanelAncor: Element | null = null;
 
   constructor(props : Props) {
     super(props);
@@ -155,6 +158,7 @@ class ItemDetailPanel extends Component<Props> {
     this.handleDateChange = this.handleDateChange.bind(this);
     this.handleEntryChanged = this.handleEntryChanged.bind(this);
     this.handleHistoryState = this.handleHistoryState.bind(this);
+    this.handleShowPassPanel = this.handleShowPassPanel.bind(this);
   }
 
   componentDidMount() {
@@ -172,13 +176,14 @@ class ItemDetailPanel extends Component<Props> {
   }
 
   handleEntryChanged(_: EntryChangedEvent) {
+    if (this.state.entry instanceof KdbxEntry)
+      this.state.historyIndex = this.state.entry.history.length;
     this.forceUpdate();
   }
 
-  handleGroupOrEntrySelected(event: GroupSelectedEvent | EntrySelectedEvent) {
+  async handleGroupOrEntrySelected(event: GroupSelectedEvent | EntrySelectedEvent) {
     const keeData = (this.context as KeeData);
-    const entry = Array.from(keeData.database.getDefaultGroup().allGroupsAndEntries())
-      .find(e => e.uuid.equals(event.entryId));
+    const entry = keeData.tryGetEntryOrGroup(event.entryId);
     if (!entry) {
       return
     }
@@ -190,6 +195,11 @@ class ItemDetailPanel extends Component<Props> {
       isInHistory: false,
       historyIndex: entry instanceof KdbxEntry ? entry.history.length : 0
     });
+  }
+
+  handleShowPassPanel(passPanelAnchor: Element | null) {
+    this.#passwordPanelAncor = passPanelAnchor;
+    this.setState({isPasswordPanelOpen: true});
   }
 
   handleInputChange(fieldId: string, inputValue: string, isProtected: boolean) {
@@ -210,11 +220,6 @@ class ItemDetailPanel extends Component<Props> {
       }
     );
 
-    // this state change on purpose, the view will be updated anyway in the EntryChanged event
-    // so here is setState is not used
-    //
-    if (this.state.entry instanceof KdbxEntry)
-      this.state.historyIndex = this.state.entry.history.length;
   }
 
   handleTagsChange (_: any, values: string[]) {
@@ -351,6 +356,7 @@ class ItemDetailPanel extends Component<Props> {
                   isMultiline = {field.isMultiline as boolean}
                   isCustomProperty = {field.sortOrder === 0}
                   onChange = {this.handleInputChange}
+                  onShowPassPanel = {this.handleShowPassPanel}
                 />
                 {field[0] === 'URL' &&
                   <Tooltip title = 'Add Custom Property' key = 'plusButton'>
@@ -453,6 +459,15 @@ class ItemDetailPanel extends Component<Props> {
             panelAncor = {this.#propertyPanelAncor}
             isPanelOpen = {this.state.isPropertyPanelOpen}
             onClose = {() => this.setState({isPropertyPanelOpen: false})}
+            entry = {entry}
+          />
+        }
+
+        {this.#passwordPanelAncor && entry instanceof KdbxEntry &&
+          <PasswordGeneratorPanel
+            panelAncor = {this.#passwordPanelAncor}
+            isPanelOpen = {this.state.isPasswordPanelOpen}
+            onClose = {() => this.setState({isPasswordPanelOpen: false})}
             entry = {entry}
           />
         }

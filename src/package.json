@@ -1,6 +1,6 @@
 {
   "name": "yet-another-kee-app",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "productName": "YetAnotherKeeApp",
   "description": "Yet another applucation to work with KeePass files (.kdbx)",
   "main": "./main.prod.js",
@@ -14,5 +14,7 @@
     "postinstall": "yarn electron-rebuild"
   },
   "license": "MIT",
-  "dependencies": {}
+  "dependencies": {
+    "argon2": "^0.28.2"
+  }
 }

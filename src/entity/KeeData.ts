@@ -1,9 +1,11 @@
 import fs from 'fs';
-import { Kdbx, ProtectedValue, Credentials, KdbxEntry, KdbxUuid, KdbxGroup} from 'kdbxweb';
+import { Kdbx, ProtectedValue, Credentials, KdbxEntry, KdbxUuid, KdbxGroup, CryptoEngine, ByteUtils} from 'kdbxweb';
+import { Argon2Type, Argon2Version } from 'kdbxweb/dist/types/crypto/crypto-engine';
 import path from 'path';
 import { EntryFilter } from './EntryFilter';
-import { KdbxUuidFactory } from './Extention';
+import { findFirst, KdbxUuidFactory } from './Extention';
 import { GroupSelectedEvent, KeeEvent, KeeEventDescriptor } from './KeeEvent';
+import argon2 from 'argon2';
 
 export enum MoveDirection {
   Up,
@@ -35,6 +37,9 @@ export default class KeeData {
   #entryFilter: EntryFilter = new EntryFilter(this);
   #dbInfo: DBInfo = new DBInfo();
 
+  constructor() {
+    CryptoEngine.setArgon2Impl((...args) => this._argon2(...args));
+  }
 
   // Load data from kdbx file
   //
@@ -149,6 +154,17 @@ export default class KeeData {
       .filter(i => !this.dbInfo.recycledUuids.includes(i.uuid));
   }
 
+  getEntry(entryUuid: KdbxUuid): KdbxEntry {
+    const entry = findFirst<KdbxEntry>(this.defaultGroup.allEntries(), e => e.uuid.equals(entryUuid))
+    if (!entry)
+      throw 'Fatal: Entry does not exists'
+    return entry;
+  }
+
+  tryGetEntryOrGroup(entryUuid: KdbxUuid): KdbxEntry | KdbxGroup | undefined {
+    return findFirst<KdbxEntry | KdbxGroup>(this.defaultGroup.allGroupsAndEntries(), e => e.uuid.equals(entryUuid))
+  }
+
   addEventListener<T extends KeeEvent>(
     keeEventType: new() => T,
     entryId: KdbxUuid,
@@ -158,9 +174,10 @@ export default class KeeData {
   }
 
   fireEvent<T extends KeeEvent>(event: T) {
+
     this.#eventListeners.filter(l => ((l as KeeEventDescriptor<T>).entryId.equals(event.entryId) ||
         (l as KeeEventDescriptor<T>).entryId.equals(KeeData.anyEntryUuid)) &&
-        (l as KeeEventDescriptor<T>).typeName === event.constructor.name)
+        (l as KeeEventDescriptor<T>).typeName === event.eventName)
       .forEach(l => {
         l.listener(event);
       });
@@ -304,8 +321,33 @@ export default class KeeData {
     if (isUpdateSaveTime)
       this.#dbInfo.lastUpdated = Math.max(
         ...Array.from(this.defaultGroup.allGroupsAndEntries()).map(e => e.times.lastModTime!.valueOf()));
-    this.#dbInfo.recycledUuids = Array.from(this.recycleBinGroup.allGroupsAndEntries()).map(i => i.uuid);
+    this.#dbInfo.recycledUuids = this.isRecycleBinAvailable
+      ? Array.from(this.recycleBinGroup.allGroupsAndEntries()).map(i => i.uuid)
+      : [];
     this.#dbInfo.totalEntries = this.allEntries.length;
+  }
+
+  private async _argon2 (
+    password: ArrayBuffer,
+    salt: ArrayBuffer,
+    memory: number,
+    iterations: number,
+    length: number,
+    parallelism: number,
+    type: Argon2Type,
+    version: Argon2Version
+  ): Promise<ArrayBuffer> {
+      const hash = await argon2.hash(Buffer.from(password), {
+          salt: Buffer.from(salt),
+          memoryCost: memory,
+          timeCost: iterations,
+          parallelism: parallelism,
+          type: type,
+          version: version,
+          hashLength: length,
+          raw: true
+      });
+      return new Uint8Array(hash.buffer);
   }
 
 }

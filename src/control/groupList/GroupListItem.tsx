@@ -1,4 +1,4 @@
-import { createMuiTheme, IconButton, ListItem, ListItemIcon, ListItemText, WithStyles, withStyles } from '@material-ui/core';
+import { IconButton, ListItem, ListItemIcon, ListItemText, WithStyles, withStyles } from '@material-ui/core';
 import { compareAsc, format } from 'date-fns';
 import { KdbxGroup, KdbxUuid } from 'kdbxweb';
 import * as React from 'react';
@@ -70,7 +70,6 @@ class GroupListItem extends React.Component<IGroupListItemProps, IGroupListItemS
       .map(e => e.times.expiryTime || 0)
       .sort(compareAsc)[0];
 
-
     return (
       <LightTooltip title = {group.notes ? <> {group.notes} </> : ''} >
         <ListItem
@@ -105,7 +104,7 @@ class GroupListItem extends React.Component<IGroupListItemProps, IGroupListItemS
               e.dataTransfer.setData('text', group.uuid.id);
               e.stopPropagation()
             }}
-            onDrop = {e => this.handleDrop(e)}
+            onDrop = {this.handleDrop}
             classes = {{primary: classes.listItemText, secondary: classes.listItemSubText}}
             primary = {group.name}
             secondary = {
@@ -115,11 +114,11 @@ class GroupListItem extends React.Component<IGroupListItemProps, IGroupListItemS
                     <SvgPath path = {DefaultKeeIcon.key} className = {classes.smallIcon} />
                     {totalEntries}
                     &nbsp;&nbsp;&nbsp;&nbsp;
-                    {closeExpired
-                      ? <SvgPath path = {SystemIcon.expire} className = {classes.smallIcon} />
-                      : ''
+                    {closeExpired &&
+                      <>
+                        <SvgPath path = {SystemIcon.expire} className = {classes.smallIcon} /> {format(closeExpired, 'dd MMM yyyy')}
+                      </>
                     }
-                    {closeExpired && format(closeExpired, 'dd MMM yyyy')}
                   </>
                 }
               </>
