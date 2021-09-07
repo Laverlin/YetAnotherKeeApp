@@ -11,7 +11,12 @@ export class Setting {
     let setting = new settingType();
     const userDataPath = (electron.app || electron.remote.app).getPath('userData');
     setting.#filePath = path.join(userDataPath, settingType.name + '.json');
-    return Object.assign(setting, JSON.parse(fs.readFileSync(setting.#filePath, 'utf-8')));
+    try {
+      return Object.assign(setting, JSON.parse(fs.readFileSync(setting.#filePath, 'utf-8')));
+    }
+    catch {
+      return setting;
+    }
   }
 
   save() {
