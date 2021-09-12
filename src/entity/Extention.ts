@@ -1,6 +1,4 @@
 import { KdbxEntry, KdbxUuid } from "kdbxweb";
-import { findAllInRenderedTree } from "react-dom/test-utils";
-
 
 export class KdbxUuidFactory {
 
@@ -28,10 +26,6 @@ export class KdbxUuidFactory {
 }
 
 declare global {
-  export interface IterableIterator<T> {
-      find<T>(predicate: (item: T) => boolean): T
-  }
-
   export interface Map<K, V> {
     findValue<V>(predicate: (item: V) => boolean): V | undefined
   }

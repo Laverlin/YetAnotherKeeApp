@@ -6,6 +6,7 @@ import { DefaultFields, DefaultKeeIcon, KeeData, KeeDataContext, SystemIcon } fr
 import { LightTooltip, SvgPath } from '../common';
 import { EntryChangedEvent, EntrySelectedEvent } from '../../entity/KeeEvent';
 import { EntryContextMenu } from './EntryContextMenu';
+import { isPast } from 'date-fns';
 
 
 const styles = (theme: Theme) =>  createStyles({
@@ -134,7 +135,16 @@ const styles = (theme: Theme) =>  createStyles({
 
   titleFolder: {
     fontWeight: 'bold'
+  },
+
+  titleExpired: {
+    textDecoration: 'line-through'
+  },
+
+  timeExpired: {
+    color: theme.palette.secondary.main
   }
+
 
 });
 
@@ -209,6 +219,7 @@ class EntryListItem extends React.Component<IEntryListItemProps, IEntryListItemS
   public render() {
     const {entry, classes} = this.props;
     const {isSelected} = this.state;
+    const isExpired = entry.times.expires && entry.times.expiryTime && isPast(entry.times.expiryTime);
 
 
     return (
@@ -238,9 +249,16 @@ class EntryListItem extends React.Component<IEntryListItemProps, IEntryListItemS
           </div>
           <div className = {classes.itemContent}>
             <div className = {classes.itemContentRow}>
-              <div className={clsx(classes.title, entry instanceof KdbxGroup && classes.titleFolder)}>{this.entryTitle}</div>
+              <div className = {clsx(
+                                 classes.title,
+                                 isExpired && classes.titleExpired,
+                                 entry instanceof KdbxGroup && classes.titleFolder
+                               )}
+              >
+                {this.entryTitle}
+              </div>
               {entry.times.expires &&
-                <div className={clsx(classes.titleSecondary, classes.flexAlignRight)}>
+                <div className={clsx(classes.titleSecondary, classes.flexAlignRight, isExpired && classes.timeExpired)}>
                   <SvgPath className={classes.inlineLeftIcon} path = {SystemIcon.expire} />
                   {entry.times.expiryTime?.toDateString()}
                 </div>

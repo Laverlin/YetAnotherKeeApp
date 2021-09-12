@@ -1,9 +1,5 @@
-// TODO::
-// ts-simple-nameof
-// try to reuse outlined for tags
-
 import React, { Component } from "react";
-import { KdbxEntry, KdbxEntryField, KdbxGroup, KdbxUuid, ProtectedValue } from "kdbxweb";
+import { KdbxEntry, KdbxEntryField, KdbxGroup, ProtectedValue } from "kdbxweb";
 import { DefaultKeeIcon, SystemIcon } from "../../entity/GlobalObject";
 import { KeeDataContext } from "../../entity/Context";
 import { scrollBar, SvgPath } from "../common";
@@ -176,7 +172,7 @@ class ItemDetailPanel extends Component<Props> {
   }
 
   handleEntryChanged(_: EntryChangedEvent) {
-    if (this.state.entry instanceof KdbxEntry)
+    if (this.state.entry instanceof KdbxEntry && !this.state.isInHistory)
       this.state.historyIndex = this.state.entry.history.length;
     this.forceUpdate();
   }

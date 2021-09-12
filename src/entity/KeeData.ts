@@ -317,6 +317,18 @@ export default class KeeData {
     this.fireEvent(KeeEvent.createEntryChangedEvent(entry.uuid));
   }
 
+  removeUnusedIcons() {
+    this.database.meta.customIcons.forEach((_, id) => {
+      const usedInEntry = findFirst(this.defaultGroup.allGroupsAndEntries(), entry => {
+        return (entry.customIcon?.id === id ||
+          (entry instanceof KdbxEntry && !!entry.history.find(e => e.customIcon?.id === id)))
+      });
+      if (!usedInEntry ){
+        this.database.meta.customIcons.delete(id);
+      }
+    })
+  }
+
   private _updateDBInfo(isUpdateSaveTime: boolean = false) {
     if (isUpdateSaveTime)
       this.#dbInfo.lastUpdated = Math.max(

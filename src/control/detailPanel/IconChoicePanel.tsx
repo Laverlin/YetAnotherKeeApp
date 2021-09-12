@@ -1,6 +1,6 @@
 import fs from 'fs';
 import * as React from 'react';
-import { createStyles, GridList, GridListTile, IconButton, ListSubheader, Popover, Theme, Typography, WithStyles, withStyles } from '@material-ui/core';
+import { createStyles, GridList, GridListTile, IconButton, ListSubheader, Popover, Theme, Tooltip, Typography, WithStyles, withStyles } from '@material-ui/core';
 import { DefaultKeeIcon, KeeData, KeeDataContext, SystemIcon } from '../../entity';
 import { SvgPath, scrollBar } from '../common';
 import clsx from 'clsx';
@@ -55,8 +55,8 @@ class IconChoicePanel extends React.Component<IIconChoicePanelProps> {
       this.props.entry,
       entry => {
         if (isPredefinedIcon) {
-          const iconKey = Object.keys(DefaultKeeIcon).findIndex(key => key === iconId) as number;
-          if (iconKey) {
+          const iconKey = Object.keys(DefaultKeeIcon).findIndex(key => key === iconId);
+          if (iconKey > -1) {
             entry.customIcon = undefined;
             entry.icon = iconKey;
           }
@@ -78,6 +78,11 @@ class IconChoicePanel extends React.Component<IIconChoicePanelProps> {
     const uuid = KdbxUuid.random();
     (this.context as KeeData).database.meta.customIcons.set(uuid.id, icon);
 
+    this.forceUpdate();
+  }
+
+  handleRemoveUnused() {
+    (this.context as KeeData).removeUnusedIcons();
     this.forceUpdate();
   }
 
@@ -111,9 +116,16 @@ class IconChoicePanel extends React.Component<IIconChoicePanelProps> {
             <GridListTile key="customSubheader" cols = {9} style = {{ height: 'auto' }} className = {classes.gridTitleHeader}>
               <ListSubheader component="div">
                 <Typography variant='h5'>Custom Icons
-                  <IconButton onClick = {() => this.handleAddCustomIcon()} >
-                    <SvgPath path = {SystemIcon.add} />
-                  </IconButton>
+                  <Tooltip title = 'Add Icon'>
+                    <IconButton onClick = {() => this.handleAddCustomIcon()} >
+                      <SvgPath path = {SystemIcon.add} />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title = 'Remove Unused Icons'>
+                    <IconButton onClick = {() => this.handleRemoveUnused()} >
+                      <SvgPath path = {DefaultKeeIcon.wrench} />
+                    </IconButton>
+                  </Tooltip>
                 </Typography>
               </ListSubheader>
             </GridListTile>

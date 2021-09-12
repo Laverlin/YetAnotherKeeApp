@@ -26,6 +26,7 @@ class GroupListItem extends React.Component<IGroupListItemProps, IGroupListItemS
   constructor(props: IGroupListItemProps) {
     super(props);
     this.handleGroupChanged = this.handleGroupChanged.bind(this);
+    this.handleDrop = this.handleDrop.bind(this);
     this.state = {
     }
   }
@@ -60,7 +61,7 @@ class GroupListItem extends React.Component<IGroupListItemProps, IGroupListItemS
 
   public render() {
     const {classes, group, isSelected, nestLevel} = this.props;
-    const defaultGroupUuid = (this.context as KeeData).database.getDefaultGroup().uuid;
+    const defaultGroupUuid = (this.context as KeeData).defaultGroup.uuid;
     const recycleBinUuid = (this.context as KeeData).recycleBinUuid;
     const totalEntries = group.uuid.equals(recycleBinUuid)
       ? Array.from(group.allGroupsAndEntries()).length - 1
@@ -116,7 +117,8 @@ class GroupListItem extends React.Component<IGroupListItemProps, IGroupListItemS
                     &nbsp;&nbsp;&nbsp;&nbsp;
                     {closeExpired &&
                       <>
-                        <SvgPath path = {SystemIcon.expire} className = {classes.smallIcon} /> {format(closeExpired, 'dd MMM yyyy')}
+                        <SvgPath path = {SystemIcon.expire} className = {classes.smallIcon} />
+                        {format(closeExpired, 'dd MMM yyyy')}
                       </>
                     }
                   </>

@@ -2,7 +2,7 @@ import electron from "electron"
 import React from "react";
 import { RouteComponentProps, withRouter } from "react-router-dom";
 import {  createStyles, WithStyles, withStyles, Theme } from "@material-ui/core/styles";
-import {AppBar, Toolbar, Button, IconButton, Popover, Typography, Tooltip} from "@material-ui/core";
+import {AppBar, Toolbar, IconButton, Typography, Tooltip} from "@material-ui/core";
 import clsx from "clsx";
 
 import { KeeData, KeeDataContext, SystemIcon } from "../../entity";
@@ -10,6 +10,7 @@ import { SvgPath } from "../common";
 import SearchBox from "./SearchBox";
 import SortMenu from "./SortMenu";
 import { EntryChangedEvent } from "../../entity/KeeEvent";
+import SettingPanel from "./SettingPanel";
 
 
 const styles = (theme: Theme) =>  createStyles({
@@ -104,20 +105,11 @@ class AppToolBar extends React.Component<Props>
 
   state = {
     isMaximized: electron.remote.getCurrentWindow().isMaximized(),
-    isPopOpen: false,
     isSortMenuOpen: false,
     sortField: 'Title',
-    isDbChanged: false
+    isDbChanged: false,
+    isSettingPanelOpen: false
   }
-
-  info = {
-    version : electron.remote.process.env.npm_package_version,
-    environment: electron.remote.process.env.NODE_ENV,
-    electron: electron.remote.process.versions.electron,
-    node: electron.remote.process.versions.node
-  }
-
-  #menuAncor = null as any;
 
   constructor(props: Props)
   {
@@ -151,10 +143,6 @@ class AppToolBar extends React.Component<Props>
 
   handleMinimizeWindow = () => electron.remote.getCurrentWindow().minimize();
 
-  handleMenuOpen = () => 	this.setState({	isPopOpen: true });
-
-	handleMenuClose = () => this.setState({ isPopOpen: false });
-
   handleBackClick() {
     this.setState({isDbChanged: false});
     this.props.history.goBack();
@@ -167,6 +155,7 @@ class AppToolBar extends React.Component<Props>
 
   render() {
     const { classes, history }  = this.props;
+    const { isSettingPanelOpen } = this.state;
     return(
       <>
       <AppBar position="absolute">
@@ -210,6 +199,7 @@ class AppToolBar extends React.Component<Props>
             <IconButton
               color="inherit"
               className = {clsx(classes.button, classes.buttonMinimize)}
+              onClick = {() => this.setState({isSettingPanelOpen: true})}
             >
               <SvgPath className = {classes.icon20} path = {SystemIcon.settings} />
             </IconButton>
@@ -239,24 +229,11 @@ class AppToolBar extends React.Component<Props>
         </Toolbar>
       </AppBar>
 
-      <Popover
-        open = {this.state.isPopOpen}
-        anchorEl = {this.#menuAncor}
-        anchorOrigin = {{vertical: 'bottom', horizontal: 'right'}}
-        transformOrigin = {{vertical: 'top', horizontal: 'left'}}
-        onClose = {this.handleMenuClose}
-      >
-        <Typography className = {classes.aboutPaper} variant="h6">
-          Yet Another KeePass App
-          <Typography className = {classes.aboutDetail} variant="body1">
-            Version: <Typography variant="caption">{this.info.version}</Typography> <br/>
-            Env: <Typography variant="caption">{this.info.environment}</Typography> <br/>
-            Electron: <Typography variant="caption">{this.info.electron}</Typography> <br/>
-            Node: <Typography variant="caption">{this.info.node}</Typography> <br/>
-          </Typography>
-        </Typography>
-        <Button onClick={this.handleBackClick}>Get back</Button>
-      </Popover>
+      <SettingPanel
+        isPanelOpen = {isSettingPanelOpen}
+        onClose = {() => this.setState({isSettingPanelOpen: false})}
+      />
+
     </>
     );
   }

@@ -13,6 +13,7 @@ import MainFrame from './control/MainFrame';
 import MainLayout from './control/MainLayout';
 import { ThemeProvider } from '@material-ui/core';
 import { appTheme } from './appTheme';
+import ErrorBoundary from './control/common/ErrorBoundary';
 
 
 const keeData = new KeeData();
@@ -22,16 +23,18 @@ render(
     <KeeDataContext.Provider value = {keeData}>
       <ThemeProvider theme = {appTheme}>
         <Router>
-          <MainFrame>
-            <Switch>
-              <Route path = "/app">
-                <MainLayout />
-              </Route>
-              <Route path = "/">
-                <SelectDb />
-              </Route>
-            </Switch>
-          </MainFrame>
+          <ErrorBoundary>
+            <MainFrame>
+              <Switch>
+                <Route path = "/app">
+                  <MainLayout />
+                </Route>
+                <Route path = "/">
+                  <SelectDb />
+                </Route>
+              </Switch>
+            </MainFrame>
+          </ErrorBoundary>
         </Router>
       </ThemeProvider>
     </KeeDataContext.Provider>
