@@ -1,4 +1,3 @@
-import { Data } from "electron/common";
 import { KdbxUuid } from "kdbxweb";
 import { KeeData } from ".";
 
@@ -94,5 +93,10 @@ export class KeeEventDescriptor<T extends KeeEvent> {
     return this.#tName;
   }
 }
+
+
+
+
+
 
 

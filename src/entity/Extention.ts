@@ -29,6 +29,7 @@ declare global {
   export interface Map<K, V> {
     findValue<V>(predicate: (item: V) => boolean): V | undefined
   }
+
 }
 
 export function findFirst<T>(iterable: IterableIterator<T>, predicate: (item: T) => boolean): T | undefined {
@@ -54,13 +55,7 @@ Map.prototype.findValue = function<K, V>(this: Map<K, V>, predicate: (item: V) =
 
 
 
-/*
-IterableIterator.prototype.find = function<T>(this: IterableIterator<T>, predicate: (item: T) => boolean): T | undefined  {
-  for(const item of this) {
-    if (predicate(item))
-      return item;
-  }
-  return undefined
-}
-*/
+
+
+
 
