@@ -1,134 +1,116 @@
 import { Divider, ListItemIcon, Menu, MenuItem } from '@material-ui/core';
-import { KdbxEntry, KdbxGroup} from 'kdbxweb';
-import React from 'react';
-import {  DefaultKeeIcon, KeeData, KeeDataContext, SystemIcon } from '../../entity';
+import assert from 'assert';
+import React, { FC } from 'react';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import {  DefaultFields, DefaultKeeIcon, SystemIcon } from '../../entity';
+import { KeeFileManager } from '../../entity/model/KeeFileManager';
+import { editSelectedItem } from '../../entity/state/Atom';
+import { closeItemContextMenu, itemContextMenuAtom, notificationAtom } from '../../entity/state/PanelStateAtoms';
 import { SvgPath } from '../common';
 
-interface IContextMenuProps {
-  handleCopy(filedName: string, entry: KdbxEntry): void
-}
+export const EntryContextMenu: FC = () => {
 
-interface IContextMenuState {
-  isContextMenuOpen: boolean,
-  menuAnchor: Element | null,
-  selectedEntry: KdbxEntry | KdbxGroup
-}
+  const [contextMenuState, setContextMenuState] = useRecoilState(itemContextMenuAtom);
+  const setMessage = useSetRecoilState(notificationAtom);
+  const setItemState = useSetRecoilState(editSelectedItem);
 
-export class EntryContextMenu extends React.Component<IContextMenuProps, IContextMenuState> {
-  constructor(props : IContextMenuProps) {
-    super(props);
-    this.handleContextMenuClose = this.handleContextMenuClose.bind(this);
-    this.state = {
-      isContextMenuOpen: false,
-      menuAnchor: null,
-      selectedEntry: new KdbxEntry()
-    }
-  }
-  static contextType = KeeDataContext;
-
-  handleContextMenuOpen(menuAnchor: Element, entry: KdbxEntry | KdbxGroup): void  {
-    this.setState({
-      isContextMenuOpen: true,
-      menuAnchor: menuAnchor,
-      selectedEntry: entry,
-    });
-  }
-
-  handleContextMenuClose(): void  {
-    this.setState({isContextMenuOpen: false});
-  }
-
-  handleCopy (fieldName: string, event: React.MouseEvent<Element, MouseEvent>): void {
+  const handleCopy = (fieldName: keyof typeof DefaultFields, event: React.MouseEvent<Element, MouseEvent>): void => {
     event.stopPropagation();
-    this.handleContextMenuClose();
-    this.props.handleCopy(fieldName, this.state.selectedEntry as KdbxEntry)
+    if (!contextMenuState.entry)
+      return;
+    setContextMenuState(closeItemContextMenu);
+    navigator.clipboard.writeText(contextMenuState.entry.getFieldUnprotected(fieldName));
+    setMessage(`${DefaultFields[fieldName]} is copied`);
   }
 
-  handleDeleteEntry(): void  {
-    (this.context as KeeData).deleteEntryOrGroup(this.state.selectedEntry);
-    this.handleContextMenuClose();
+  const handleDeleteEntry = () =>  {
+    assert(contextMenuState.entry);
+    setContextMenuState(closeItemContextMenu);
+    const deletedEntry = KeeFileManager.deleteItem(contextMenuState.entry);
+    setItemState(deletedEntry);
   }
 
-  render() {
+  const entry = contextMenuState.entry;
+  if (!entry)
+    return null;
 
-    const {isContextMenuOpen, selectedEntry} = this.state;
-    return (
-      <Menu
-        keepMounted
-        open = {isContextMenuOpen}
-        onClose = {this.handleContextMenuClose}
-        anchorEl = {this.state.menuAnchor}
-        anchorOrigin = {{vertical: 'top', horizontal: 'left'}}
-        transformOrigin = {{vertical: 'top', horizontal: 'right'}}
-        getContentAnchorEl = {null}
+  return (
+    <Menu
+      keepMounted
+      open = {contextMenuState.isShowPanel}
+      onClose = {() => setContextMenuState(closeItemContextMenu)}
+      anchorEl = {contextMenuState.panelAnchor}
+      anchorOrigin = {{vertical: 'top', horizontal: 'left'}}
+      transformOrigin = {{vertical: 'top', horizontal: 'right'}}
+      getContentAnchorEl = {null}
+    >
+      { !entry.isGroup &&
+        <MenuItem
+          key = 'copyPwd'
+          disabled = {!entry.getField('Password').toString()}
+          onClick = {event => handleCopy('Password', event)}
+        >
+          <ListItemIcon>
+            <SvgPath path = {DefaultKeeIcon.key}/>
+          </ListItemIcon>
+          Copy Password
+        </MenuItem>
+      }
+      { !entry.isGroup &&
+        <MenuItem
+          key = 'copyUserName'
+          disabled = {!entry.getField('UserName')}
+          onClick = {event => handleCopy('UserName', event)}
+        >
+          <ListItemIcon>
+            <SvgPath path = {SystemIcon.user}/>
+          </ListItemIcon>
+          Copy User Name
+        </MenuItem>
+      }
+      { !entry.isGroup &&
+        <MenuItem
+          key = 'copyUrl'
+          disabled = {!entry.getField('URL')}
+          onClick = {event => handleCopy('URL', event)}
+        >
+          <ListItemIcon>
+            <SvgPath path = {DefaultKeeIcon.link} />
+          </ListItemIcon>
+          Copy Url
+        </MenuItem>
+      }
+      <Divider/>
+      <MenuItem
+        key = 'goUrl'
+        onClick={() => setContextMenuState(closeItemContextMenu)} disabled
       >
-        { selectedEntry instanceof KdbxEntry &&
-          <MenuItem
-            key = 'copyPwd'
-            disabled = {!selectedEntry.fields.get('Password')?.toString()}
-            onClick = {event => this.handleCopy('Password', event)}
-          >
-            <ListItemIcon>
-              <SvgPath path = {DefaultKeeIcon.key}/>
-            </ListItemIcon>
-            Copy Password
-          </MenuItem>
-        }
-        { selectedEntry instanceof KdbxEntry &&
-          <MenuItem
-            key = 'copyUserName'
-            disabled = {!selectedEntry.fields.get('UserName')}
-            onClick = {event => this.handleCopy('UserName', event)}
-          >
-            <ListItemIcon>
-              <SvgPath path = {SystemIcon.user}/>
-            </ListItemIcon>
-            Copy User Name
-          </MenuItem>
-        }
-        { selectedEntry instanceof KdbxEntry &&
-          <MenuItem
-            key = 'copyUrl'
-            disabled = {!selectedEntry.fields.get('URL')}
-            onClick = {event => this.handleCopy('URL', event)}
-          >
-            <ListItemIcon>
-              <SvgPath path = {DefaultKeeIcon.link} />
-            </ListItemIcon>
-            Copy Url
-          </MenuItem>
-        }
-        <Divider/>
-        <MenuItem
-          key = 'goUrl'
-          onClick={this.handleContextMenuClose} disabled
-        >
-          <ListItemIcon>
-            <SvgPath path = {DefaultKeeIcon.bolt} />
-          </ListItemIcon>
-          Open Url
-        </MenuItem>
-        <MenuItem
-          key = 'autotype'
-          onClick={this.handleContextMenuClose} disabled
-        >
-          <ListItemIcon>
-            <SvgPath path = {DefaultKeeIcon.terminal} />
-          </ListItemIcon>
-          Auto-Type
-        </MenuItem>
-        <Divider/>
-        <MenuItem
-          key = 'delete'
-          onClick = {() => this.handleDeleteEntry()}
-        >
-          <ListItemIcon>
-            <SvgPath path = {DefaultKeeIcon.trash} />
-          </ListItemIcon>
-          Delete Entry
-        </MenuItem>
-      </Menu>
-    );
-  }
+        <ListItemIcon>
+          <SvgPath path = {DefaultKeeIcon.bolt} />
+        </ListItemIcon>
+        Open Url
+      </MenuItem>
+      <MenuItem
+        key = 'autotype'
+        onClick={() => setContextMenuState(closeItemContextMenu)} disabled
+      >
+        <ListItemIcon>
+          <SvgPath path = {DefaultKeeIcon.terminal} />
+        </ListItemIcon>
+        Auto-Type
+      </MenuItem>
+      <Divider/>
+      <MenuItem
+        key = 'delete'
+        onClick = {() => handleDeleteEntry()}
+      >
+        <ListItemIcon>
+          <SvgPath path = {DefaultKeeIcon.trash} />
+        </ListItemIcon>
+        Delete Entry
+      </MenuItem>
+    </Menu>
+  );
 }
+
 

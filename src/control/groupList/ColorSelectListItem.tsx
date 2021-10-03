@@ -1,4 +1,4 @@
-import React from "react";
+import React, { FC, useState } from "react";
 import clsx from "clsx";
 import {
   IconButton,
@@ -8,81 +8,67 @@ import {
   withStyles,
   WithStyles
 } from "@material-ui/core";
-
-import {KeeData, KeeDataContext, DefaultColors, SystemIcon } from "../../entity";
+import {DefaultColors, SystemIcon } from "../../entity";
 import {groupListStyles} from "./groupListStyles"
 import {SvgPath} from "../common";
+import { useRecoilState } from "recoil";
+import { colorFilterAtom } from "../../entity/state/Atom";
 
-interface Props extends WithStyles<typeof groupListStyles> {}
+interface IProps extends WithStyles<typeof groupListStyles> {}
 
-class ColorSelectListItem extends React.Component<Props> {
+const ColorSelectListItem: FC<IProps> = ({classes}) => {
 
-  static contextType = KeeDataContext;
-  get keeData() { return this.context as KeeData; }
+  const [colorFilter, setColorFilter] = useRecoilState(colorFilterAtom);
+  const [isShowColorSelection, setShowColorSelection] = useState(false);
 
-  state = {
-    colors: [
-      DefaultColors.yellow,
-      DefaultColors.green,
-      DefaultColors.red,
-      DefaultColors.orange,
-      DefaultColors.blue,
-      DefaultColors.purple
-    ],
-    isShowColorSelection: false,
-  }
+  const colors = [
+    DefaultColors.yellow,
+    DefaultColors.green,
+    DefaultColors.red,
+    DefaultColors.orange,
+    DefaultColors.blue,
+    DefaultColors.purple
+  ];
 
-  handleSetColor(color: string) {
-    this.keeData.entryFilter.colorFilter = color;
-    this.forceUpdate();
-  }
-
-  render()
-  {
-    const { classes }  = this.props;
-    const { colors, isShowColorSelection } = this.state;
-    const { entryFilter } = this.keeData;
-
-    return (
-      <ListItem
-      className={classes.listItem}
-      onMouseEnter = {() => this.setState({isShowColorSelection: true})}
-      onMouseLeave = {() => this.setState({isShowColorSelection: false})}
+  return (
+    <ListItem
+    className={classes.listItem}
+    onMouseEnter = {() => setShowColorSelection(true)}
+    onMouseLeave = {() => setShowColorSelection(false)}
+  >
+    <ListItemIcon className = {classes.icon}>
+      <SvgPath path = {SystemIcon.colorFilled} style = {{color: colorFilter}} />
+    </ListItemIcon>
+    <ListItemText
+      classes = {{primary:classes.listItemText, secondary:classes.listItemSubText}}
+      hidden = {isShowColorSelection}
     >
-      <ListItemIcon className = {classes.icon}>
-        <SvgPath path = {SystemIcon.colorFilled} style = {{color: entryFilter.colorFilter}} />
-      </ListItemIcon>
-      <ListItemText
-        classes = {{primary:classes.listItemText, secondary:classes.listItemSubText}}
-        hidden = {isShowColorSelection}
-      >
-        Colors
-      </ListItemText>
+      Colors
+    </ListItemText>
 
-      <div className = {classes.colorSelector} hidden = {!isShowColorSelection} >
+    <div className = {classes.colorSelector} hidden = {!isShowColorSelection} >
+      <IconButton
+        style= {{color: colorFilter }}
+        className = {clsx(classes.icon, classes.colorIcon)}
+        onClick = {() => setColorFilter('')}
+      >
+        <SvgPath path = {SystemIcon.colorFilled} />
+      </IconButton>
+      {colors.map(color =>
         <IconButton
-          style= {{color: entryFilter.colorFilter }}
-          className = {clsx(classes.icon, classes.colorIcon)}
-          onClick = {() => this.handleSetColor('')}
+          key = {color}
+          className = {classes.colorIcon}
+          onClick = {() => setColorFilter(color)}
         >
-          <SvgPath path = {SystemIcon.colorFilled} />
+          <SvgPath
+            path = {SystemIcon.colorEmpty}
+            style = {{color: color}}
+          />
         </IconButton>
-        {colors.map(color =>
-          <IconButton
-            key = {color}
-            className = {classes.colorIcon}
-            onClick = {() => this.handleSetColor(color)}
-          >
-            <SvgPath
-              path = {SystemIcon.colorEmpty}
-              style = {{color: color}}
-            />
-          </IconButton>
-        )}
-      </div>
-    </ListItem>
-    )
-  }
+      )}
+    </div>
+  </ListItem>
+  )
 }
 
 export default withStyles(groupListStyles, { withTheme: true })(ColorSelectListItem);

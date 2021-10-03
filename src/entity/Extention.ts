@@ -19,7 +19,7 @@ export class KdbxUuidFactory {
     const buffer: Array<number> = [];
     let hexArray = Array.from(hexString);
     while(hexArray.length > 0) {
-      buffer.push(parseInt(hexArray.splice(0, 2).join()))
+      buffer.push(parseInt(`0x${hexArray.splice(0, 2).join('')}`))
     }
     return new Uint8Array(buffer);
   }

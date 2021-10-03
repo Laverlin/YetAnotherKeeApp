@@ -1,11 +1,17 @@
 import fs from 'fs';
 import * as React from 'react';
 import { createStyles, GridList, GridListTile, IconButton, ListSubheader, Popover, Theme, Tooltip, Typography, WithStyles, withStyles } from '@material-ui/core';
-import { DefaultKeeIcon, KeeData, KeeDataContext, SystemIcon } from '../../entity';
+import { DefaultKeeIcon, SystemIcon } from '../../entity';
 import { SvgPath, scrollBar } from '../common';
 import clsx from 'clsx';
-import { KdbxCustomIcon, KdbxEntry, KdbxGroup, KdbxUuid } from 'kdbxweb';
+import { KdbxCustomIcon, KdbxUuid } from 'kdbxweb';
 import { remote } from 'electron';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import { editSelectedItem } from '../../entity/state/Atom';
+import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
+import { KeeFileManager } from '../../entity/model/KeeFileManager';
+import { useReducer } from 'react';
+import { closePanel, iconChoisePanelAtom } from '../../entity/state/PanelStateAtoms';
 
 const styles = (theme: Theme) =>  createStyles({
   root: {
@@ -35,40 +41,31 @@ const styles = (theme: Theme) =>  createStyles({
   scrollBar: scrollBar,
 });
 
-interface IIconChoicePanelProps  extends WithStyles<typeof styles> {
-  panelAncor: Element;
-  isPanelOpen: boolean;
-  onClose: {():void};
-  entry: KdbxEntry | KdbxGroup;
+interface IProps  extends WithStyles<typeof styles> {
+  entry: KdbxItemWrapper
 }
 
-class IconChoicePanel extends React.Component<IIconChoicePanelProps> {
-  static contextType = KeeDataContext;
-  constructor(props: IIconChoicePanelProps) {
-    super(props);
-    this.handleIconChange = this.handleIconChange.bind(this);
-  }
+const IconChoicePanel: React.FC<IProps> = ({classes, entry}) => {
 
-  handleIconChange(isPredefinedIcon: boolean, iconId: string) {
-    this.props.onClose();
-    (this.context as KeeData).updateEntry(
-      this.props.entry,
-      entry => {
-        if (isPredefinedIcon) {
-          const iconKey = Object.keys(DefaultKeeIcon).findIndex(key => key === iconId);
-          if (iconKey > -1) {
-            entry.customIcon = undefined;
-            entry.icon = iconKey;
-          }
-        }
-        else {
-          entry.customIcon = new KdbxUuid(iconId as string);
-        }
+  const setEntryState = useSetRecoilState(editSelectedItem);
+  const [panelState, setPanelState] = useRecoilState(iconChoisePanelAtom);
+
+  const [_, forceUpdate] = useReducer(x => x + 1, 0);
+
+  const handleIconChange = (isPredefinedIcon: boolean, iconId: string) => {
+    if (isPredefinedIcon) {
+      const defaultIconId = Object.keys(DefaultKeeIcon).findIndex(key => key === iconId);
+      if (defaultIconId > -1) {
+        setEntryState(entry.applyChanges(entry => entry.defaultIconId = defaultIconId))
       }
-    );
+    }
+    else {
+      setEntryState(entry.applyChanges(entry => entry.customIconUuid = new KdbxUuid(iconId)))
+    }
+    setPanelState(closePanel);
   }
 
-  handleAddCustomIcon() {
+  const handleAddCustomIcon = () => {
     const files = remote.dialog.showOpenDialogSync({properties: ['openFile']});
     if (!files) {
       return;
@@ -76,74 +73,69 @@ class IconChoicePanel extends React.Component<IIconChoicePanelProps> {
     const data = fs.readFileSync(files[0]);
     let icon: KdbxCustomIcon = {data: new Uint8Array(data).buffer}
     const uuid = KdbxUuid.random();
-    (this.context as KeeData).database.meta.customIcons.set(uuid.id, icon);
-
-    this.forceUpdate();
+    KeeFileManager.database.meta.customIcons.set(uuid.id, icon);
+    forceUpdate();
   }
 
-  handleRemoveUnused() {
-    (this.context as KeeData).removeUnusedIcons();
-    this.forceUpdate();
+  const handleRemoveUnused = () => {
+    KeeFileManager.removeUnusedIcons();
+    forceUpdate();
   }
 
-  public render() {
-
-    const { classes, panelAncor, isPanelOpen } = this.props;
-
-    return (
-      <Popover
-        open = {isPanelOpen}
-        anchorEl = {panelAncor}
-        anchorOrigin = {{vertical: 'bottom', horizontal: 'center'}}
-        transformOrigin = {{vertical: 'top', horizontal: 'center'}}
-        onClose = {() => this.props.onClose()}
-      >
-        <div className = {classes.root}>
-          <GridList cellHeight = {50} className = {clsx(classes.gridList, classes.scrollBar)} cols = {9}>
-            <GridListTile key="defaultSubheader" cols = {9} style = {{ height: 'auto' }} className = {classes.gridTitleHeader}>
-              <ListSubheader component="div"><Typography variant='h5'>Default Icons</Typography></ListSubheader>
+  return (
+    <Popover
+      open = {panelState.isShowPanel}
+      anchorEl = {panelState.panelAnchor}
+      anchorOrigin = {{vertical: 'bottom', horizontal: 'center'}}
+      transformOrigin = {{vertical: 'top', horizontal: 'center'}}
+      onClose = {() => setPanelState(closePanel)}
+    >
+      <div className = {classes.root}>
+        <GridList cellHeight = {50} className = {clsx(classes.gridList, classes.scrollBar)} cols = {9}>
+          <GridListTile key="defaultSubheader" cols = {9} style = {{ height: 'auto' }} className = {classes.gridTitleHeader}>
+            <ListSubheader component="div"><Typography variant='h5'>Default Icons</Typography></ListSubheader>
+          </GridListTile>
+          {Object.keys(DefaultKeeIcon).filter(i => i !== 'get').map(i =>
+            <GridListTile key = {i}>
+              <IconButton
+                size='medium'
+                onClick = {() => handleIconChange(true, i)}
+              >
+                <SvgPath path = {Reflect.get(DefaultKeeIcon, i)} />
+              </IconButton>
             </GridListTile>
-            {Object.keys(DefaultKeeIcon).filter(i => i !== 'get').map(i =>
-              <GridListTile key = {i}>
-                <IconButton
-                  size='medium'
-                  onClick = {() => this.handleIconChange(true, i)}
-                >
-                  <SvgPath path = {Reflect.get(DefaultKeeIcon, i)} />
-                </IconButton>
-              </GridListTile>
-            )}
-            <GridListTile key="customSubheader" cols = {9} style = {{ height: 'auto' }} className = {classes.gridTitleHeader}>
-              <ListSubheader component="div">
-                <Typography variant='h5'>Custom Icons
-                  <Tooltip title = 'Add Icon'>
-                    <IconButton onClick = {() => this.handleAddCustomIcon()} >
-                      <SvgPath path = {SystemIcon.add} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title = 'Remove Unused Icons'>
-                    <IconButton onClick = {() => this.handleRemoveUnused()} >
-                      <SvgPath path = {DefaultKeeIcon.wrench} />
-                    </IconButton>
-                  </Tooltip>
-                </Typography>
-              </ListSubheader>
+          )}
+          <GridListTile key="customSubheader" cols = {9} style = {{ height: 'auto' }} className = {classes.gridTitleHeader}>
+            <ListSubheader component="div">
+              <Typography variant='h5'>Custom Icons
+                <Tooltip title = 'Add Icon'>
+                  <IconButton onClick = {() => handleAddCustomIcon()} >
+                    <SvgPath path = {SystemIcon.add} />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title = 'Remove Unused Icons'>
+                  <IconButton onClick = {() => handleRemoveUnused()} >
+                    <SvgPath path = {DefaultKeeIcon.wrench} />
+                  </IconButton>
+                </Tooltip>
+              </Typography>
+            </ListSubheader>
+          </GridListTile>
+          {KeeFileManager.allCustomIcons.map(icon =>
+            <GridListTile key = {icon.iconId}>
+              <IconButton size='medium' onClick = {() => handleIconChange(false, icon.iconId)}>
+                <img
+                  className = {classes.customIcon}
+                  src={icon.iconImage}/>
+              </IconButton>
             </GridListTile>
-            {Array.from((this.context as KeeData).database.meta.customIcons).map(icon =>
-              <GridListTile key = {icon[0]}>
-                <IconButton size='medium' onClick = {() => this.handleIconChange(false, icon[0])}>
-                  <img
-                    className = {classes.customIcon}
-                    src={'data:image;base64,' + btoa(String.fromCharCode(...new Uint8Array(icon[1].data)))}/>
-                </IconButton>
-              </GridListTile>
-            )}
-          </GridList>
-        </div>
-      </Popover>
-    );
-  }
+          )}
+        </GridList>
+      </div>
+    </Popover>
+  );
 }
+
 
 export default withStyles(styles, { withTheme: true })(IconChoicePanel);
 

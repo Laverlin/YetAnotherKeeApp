@@ -1,8 +1,12 @@
+import React, { FC, useEffect } from 'react';
 import { createStyles, IconButton, Theme, Tooltip, Typography, withStyles, WithStyles } from '@material-ui/core';
-import { KdbxEntry, KdbxGroup } from 'kdbxweb';
-import * as React from 'react';
-import { KeeData, KeeDataContext, SystemIcon } from '../../entity';
+import { SystemIcon } from '../../entity';
 import { SvgPath } from '../common';
+import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import { historyAtom } from '../../entity/state/PanelStateAtoms';
+import { editSelectedItem } from '../../entity/state/Atom';
+import { ProtectedValue } from 'kdbxweb';
 
 
 const styles = (theme: Theme) =>  createStyles({
@@ -38,96 +42,82 @@ const styles = (theme: Theme) =>  createStyles({
 
 })
 
-interface IItemToolbarProps extends WithStyles<typeof styles> {
-  currentEntry: KdbxEntry | KdbxGroup,
-  onSetHistory: (isInHistory: boolean, historyIndex: number) => void,
-  totalVersions: number,
-  historyIndex: number
+interface IProps extends WithStyles<typeof styles> {
+  entry: KdbxItemWrapper
 }
 
+const ItemToolbar: FC<IProps> = ({classes, entry}) => {
 
-class ItemToolbar extends React.Component<IItemToolbarProps> {
-  static contextType = KeeDataContext;
-  constructor(props : IItemToolbarProps) {
-    super(props);
-    this.handleIndexChanged = this.handleIndexChanged.bind(this);
-    this.handleDeleteVersion = this.handleDeleteVersion.bind(this);
-  }
+  const [historyState, setHistoryState] = useRecoilState(historyAtom(entry.uuid.id));
+  const setEntryState = useSetRecoilState(editSelectedItem);
 
+  const totalVersions = entry.history.length;
+  const isLast = totalVersions === historyState.historyIndex;
+  const isFirst = 0 === historyState.historyIndex;
 
-  handleIndexChanged(newIndex: number) {
-    if (this.props.currentEntry instanceof KdbxGroup ||
-      newIndex < 0 ||
-      newIndex > this.props.currentEntry.history.length
-    )
+  useEffect(() => {
+    setHistoryState({historyIndex: totalVersions, isInHistory: false});
+  }, [entry.uuid.id, totalVersions]);
+
+  const handleIndexChanged = (newIndex: number) => {
+    if (newIndex < 0 || newIndex > totalVersions)
       return;
 
-    const actualVersion = this.props.currentEntry.history.length;
-    this.props.onSetHistory(newIndex !== actualVersion, newIndex);
-    this.setState({historyIndex: newIndex});
+    setHistoryState({isInHistory: newIndex != totalVersions, historyIndex: newIndex});
   }
 
-  handleDeleteVersion(index: number) {
-    if (this.props.currentEntry instanceof KdbxGroup)
-      return;
-
-    if (index === this.props.totalVersions - 1)
-      this.props.onSetHistory(false, index);
-    (this.context as KeeData).removeHistoryEntry(index);
+  const handleDeleteVersion = (index: number) => {
+    if (index === totalVersions - 1)
+      setHistoryState({isInHistory: false, historyIndex: index});
+    setEntryState(entry.applyChanges(entry => entry.removeHistory(index)));
   }
 
-  public render() {
-    const { classes, currentEntry, historyIndex, totalVersions }  = this.props;
-    const isEnableHistory = (currentEntry instanceof KdbxEntry)
-    const isLast = totalVersions === historyIndex;
-    const isFirst = historyIndex === 0;
+  const modifiedTime = new Date(
+    !isLast
+      ? entry.history[historyState.historyIndex].lastModTime
+      : entry.lastModifiedTime
+  ).toDateString();
 
-    const modifiedTime = new Date(
-      (currentEntry instanceof KdbxEntry && !isLast)
-        ? currentEntry.history[historyIndex].lastModTime
-        : currentEntry.lastModTime
-    ).toDateString();
+  return (
+    <div className={classes.itemBottom}>
 
-    return (
-      <div className={classes.itemBottom}>
-
-        <IconButton
-          aria-label="History back"
-          disabled = {!isEnableHistory || isFirst}
-          onClick = {() => this.handleIndexChanged(historyIndex - 1)}
-        >
-          <SvgPath className={classes.bottomIcon} path = {SystemIcon.cone_left}/>
-        </IconButton>
+      <IconButton
+        aria-label="History back"
+        disabled = {isFirst}
+        onClick = {() => handleIndexChanged(historyState.historyIndex - 1)}
+      >
+        <SvgPath className={classes.bottomIcon} path = {SystemIcon.cone_left}/>
+      </IconButton>
 
 
-        <div className = {classes.versionContent}>
-          <div><Typography variant='body1'>version: {historyIndex}</Typography></div>
-          <div><Typography variant='caption'>{modifiedTime}</Typography></div>
-        </div>
-
-        <IconButton
-          aria-label = "History forward"
-          disabled = {!isEnableHistory || isLast}
-          onClick = {() => this.handleIndexChanged(historyIndex + 1)}
-        >
-          <SvgPath className={classes.bottomIcon} path = {SystemIcon.cone_right}/>
-        </IconButton>
-
-
-        <Tooltip title = 'Remove this version from history'>
-          <span className = {classes.pushRight}>
-            <IconButton
-              aria-label = "Remove Version"
-              disabled = {!isEnableHistory || isLast}
-              onClick = {() => this.handleDeleteVersion(historyIndex)}
-            >
-              <SvgPath className={classes.bottomIcon} path = {SystemIcon.delete}/>
-            </IconButton>
-          </span>
-        </Tooltip>
+      <div className = {classes.versionContent}>
+        <div><Typography variant='body1'>version: {historyState.historyIndex}</Typography></div>
+        <div><Typography variant='caption'>{modifiedTime}</Typography></div>
       </div>
-    );
-  }
+
+      <IconButton
+        aria-label = "History forward"
+        disabled = {isLast}
+        onClick = {() => handleIndexChanged(historyState.historyIndex + 1)}
+      >
+        <SvgPath className={classes.bottomIcon} path = {SystemIcon.cone_right}/>
+      </IconButton>
+
+
+      <Tooltip title = 'Remove this version from history'>
+        <span className = {classes.pushRight}>
+          <IconButton
+            aria-label = "Remove Version"
+            disabled = {isLast}
+            onClick = {() => handleDeleteVersion(historyState.historyIndex)}
+          >
+            <SvgPath className={classes.bottomIcon} path = {SystemIcon.delete}/>
+          </IconButton>
+        </span>
+      </Tooltip>
+    </div>
+  );
 }
+
 
 export default withStyles(styles, { withTheme: true })(ItemToolbar);

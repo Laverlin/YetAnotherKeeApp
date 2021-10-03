@@ -1,4 +1,4 @@
-import React from "react";
+import React, { FC } from "react";
 import {
   createMuiTheme,
   createStyles,
@@ -9,8 +9,10 @@ import {
   withStyles,
   WithStyles
 } from "@material-ui/core";
-import { KeeData, KeeDataContext, SystemIcon } from "../../entity";
+import { SystemIcon } from "../../entity";
 import { SvgPath } from "../common";
+import { useRecoilState } from "recoil";
+import { searchFilterAtom } from "../../entity/state/Atom";
 
 const styles = (theme: Theme) =>  createStyles({
 
@@ -52,38 +54,29 @@ const searchTheme = (defaultTheme: Theme) => createMuiTheme({
   }
 });
 
-interface Props extends WithStyles<typeof styles> {}
+interface IProps extends WithStyles<typeof styles> {}
 
-class SearchBox extends React.Component<Props>
-{
-  static contextType = KeeDataContext;
+const SearchBox: FC<IProps> = ({classes}) => {
 
-  handleSearch(query: string) {
-    (this.context as KeeData).entryFilter.queryFilter = query;
-    this.forceUpdate();
-  }
+  const [searchFilter, setSearchFilter] = useRecoilState(searchFilterAtom);
 
-  render() {
-    const {classes} = this.props;
-    const {entryFilter} = (this.context as KeeData)
-    return (
-      <MuiThemeProvider theme = {searchTheme}>
-        <OutlinedInput
-          id = "search"
-          className = {classes.searchInput}
-          onChange = {event => this.handleSearch(event.target.value)}
-          onKeyDown = {event => event.key === 'Escape' && this.handleSearch('')}
-          value = {entryFilter.queryFilter}
-          placeholder = "Search"
-          endAdornment = {
-            <InputAdornment position="end">
-              <SvgPath className = {classes.icon15} path = {SystemIcon.search} />
-            </InputAdornment>
-          }
-        />
-      </MuiThemeProvider>
-    )
-  }
+  return (
+    <MuiThemeProvider theme = {searchTheme}>
+      <OutlinedInput
+        id = "search"
+        className = {classes.searchInput}
+        onChange = {event => setSearchFilter(event.target.value)}
+        onKeyDown = {event => event.key === 'Escape' && setSearchFilter('')}
+        value = {searchFilter}
+        placeholder = "Search"
+        endAdornment = {
+          <InputAdornment position="end">
+            <SvgPath className = {classes.icon15} path = {SystemIcon.search} />
+          </InputAdornment>
+        }
+      />
+    </MuiThemeProvider>
+  )
 }
 
 export default withStyles(styles, { withTheme: true })(SearchBox);

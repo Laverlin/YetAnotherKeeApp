@@ -1,115 +1,113 @@
-import { Divider, ListItemIcon, Menu, MenuItem, withStyles } from '@material-ui/core';
-import { KdbxUuid } from 'kdbxweb';
-import * as React from 'react';
-import { DefaultKeeIcon, KeeData, KeeDataContext, SystemIcon } from '../../entity';
+import { Divider, ListItemIcon, Menu, MenuItem} from '@material-ui/core';
+import assert from 'assert';
+import React, { FC } from 'react';
+import { useRecoilCallback, useRecoilState, useSetRecoilState } from 'recoil';
+import { DefaultKeeIcon, SystemIcon } from '../../entity';
 import { MoveDirection } from '../../entity/KeeData';
+import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
+import { KeeFileManager } from '../../entity/model/KeeFileManager';
+import { editSelectedItem, keeStateAtom, selectedEntrySelector, selectedGroupSelector } from '../../entity/state/Atom';
+import { closeItemContextMenu, groupContextMenuAtom } from '../../entity/state/PanelStateAtoms';
 import { SvgPath } from '../common';
-import { groupListStyles } from './groupListStyles';
 
-interface IGroupContextMenuProps {
-  openMenuHandler: (handler:(groupUuid: KdbxUuid, menuAnchor: Element) => void) => void
-}
 
-interface IGroupContextMenuState {
-  isContextMenuOpen: boolean,
-  menuAnchor: Element | null,
-  groupUuid: KdbxUuid
-}
+export const GroupContextMenu: FC = () => {
 
-class GroupContextMenu extends React.Component<IGroupContextMenuProps, IGroupContextMenuState> {
-  static contextType = KeeDataContext;
-  constructor(props: IGroupContextMenuProps) {
-    super(props);
-    this.menuHandler = this.menuHandler.bind(this);
-    this.props.openMenuHandler(this.menuHandler);
-    this.state = {
-      isContextMenuOpen: false,
-      menuAnchor: null,
-      groupUuid: new KdbxUuid()
-    }
+  // Global state
+  //
+  const [contextMenu, setContextMenuState] = useRecoilState(groupContextMenuAtom);
+  const setItemState = useSetRecoilState(editSelectedItem);
+  const addItemToState = useRecoilCallback(
+    ({set}) => (value: KdbxItemWrapper) => { set(keeStateAtom, (cur => cur.concat(value))) }
+  );
+  const setSelectedGroup = useSetRecoilState(selectedGroupSelector);
+  const setSelectedEntry = useSetRecoilState(selectedEntrySelector);
+
+  // Handlers
+  //
+  const handleCreateItem = (isGroup: boolean) => {
+    assert(contextMenu.entry);
+    setContextMenuState(closeItemContextMenu);
+    const newItem = KeeFileManager.createItem(contextMenu.entry, isGroup, 'New Group');
+    addItemToState(newItem);
+    isGroup ? setSelectedGroup(newItem) : setSelectedEntry(newItem);
   }
 
-  menuHandler(groupUuid: KdbxUuid, menuAnchor: Element) {
-    this.setState({isContextMenuOpen: true, groupUuid: groupUuid, menuAnchor: menuAnchor})
+  const changeGroupOrder = (direction: MoveDirection) => {
+    assert(contextMenu.entry);
+    setContextMenuState(closeItemContextMenu);
+    setItemState(KeeFileManager.stepGroup(contextMenu.entry, direction));
   }
 
-  public render() {
-    const {isContextMenuOpen, menuAnchor, groupUuid} = this.state;
-    return (
-      <Menu
-        open = {isContextMenuOpen}
-        onClose = {() => this.setState({isContextMenuOpen: false})}
-        anchorEl = {menuAnchor}
-        anchorOrigin = {{vertical: 'top', horizontal: 'right'}}
-        transformOrigin = {{vertical: 'top', horizontal: 'left'}}
-        getContentAnchorEl = {null}
+  const handleDeleteGroup = () => {
+    assert(contextMenu.entry);
+    setContextMenuState(closeItemContextMenu);
+    setSelectedGroup(contextMenu.entry.parent);
+    setItemState(KeeFileManager.deleteItem(contextMenu.entry));
+  }
+
+  return (
+    <Menu
+      open = {contextMenu.isShowPanel}
+      onClose = {() => setContextMenuState(closeItemContextMenu)}
+      anchorEl = {contextMenu.panelAnchor}
+      anchorOrigin = {{vertical: 'top', horizontal: 'right'}}
+      transformOrigin = {{vertical: 'top', horizontal: 'left'}}
+      getContentAnchorEl = {null}
+    >
+      <MenuItem onClick = {() => handleCreateItem(false)}>
+        <ListItemIcon >
+            <SvgPath path = {DefaultKeeIcon.key} />
+        </ListItemIcon>
+        Create Entry
+      </MenuItem>
+
+      <MenuItem onClick = {() => handleCreateItem(true)}>
+        <ListItemIcon>
+            <SvgPath path = {DefaultKeeIcon['folder-o']} />
+        </ListItemIcon>
+        Create Group
+      </MenuItem>
+
+      <Divider />
+
+      <MenuItem
+        disabled = {
+          contextMenu.entry?.isDefaultGroup ||
+          contextMenu.entry?.groupSortOrder === 0
+        }
+        onClick = {() => changeGroupOrder(MoveDirection.Up)}
       >
-        <MenuItem onClick = {() => {
-          this.setState({isContextMenuOpen: false});
-          (this.context as KeeData).createEntry(groupUuid);
-        }}>
-          <ListItemIcon >
-              <SvgPath path = {DefaultKeeIcon.key} />
-          </ListItemIcon>
-          Create Entry
-        </MenuItem>
+        <ListItemIcon>
+          <SvgPath path = {SystemIcon.cone_up} />
+        </ListItemIcon>
+        Move Up
+      </MenuItem>
 
-        <MenuItem onClick = {() => {
-          this.setState({isContextMenuOpen: false});
-          (this.context as KeeData).createGroup(groupUuid);
-        }}>
-          <ListItemIcon>
-              <SvgPath path = {DefaultKeeIcon['folder-o']} />
-          </ListItemIcon>
-          Create Group
-        </MenuItem>
+      <MenuItem
+        disabled = {contextMenu.entry?.isDefaultGroup}
+        onClick = {() => changeGroupOrder(MoveDirection.Down)}
+      >
+        <ListItemIcon>
+          <SvgPath path = {SystemIcon.cone_down} />
+        </ListItemIcon>
+        Move Down
+      </MenuItem>
 
-        <Divider />
+      <Divider />
 
-        <MenuItem
-          disabled = {groupUuid.equals((this.context as KeeData).database.getDefaultGroup().uuid)}
-          onClick = {() => {
-            this.setState({isContextMenuOpen: false});
-            (this.context as KeeData).moveGroupStep(groupUuid, MoveDirection.Up);
-          }}
-        >
-          <ListItemIcon>
-              <SvgPath path = {SystemIcon.cone_up} />
-          </ListItemIcon>
-          Move Up
-        </MenuItem>
+      <MenuItem
+        disabled = {contextMenu.entry?.isDefaultGroup}
+        onClick = {() => handleDeleteGroup()}
+      >
+        <ListItemIcon>
+            <SvgPath path = {DefaultKeeIcon.trash} />
+        </ListItemIcon>
+        Delete Group
+      </MenuItem>
 
-        <MenuItem
-          disabled = {groupUuid.equals((this.context as KeeData).database.getDefaultGroup().uuid)}
-          onClick = {() => {
-            this.setState({isContextMenuOpen: false});
-            (this.context as KeeData).moveGroupStep(groupUuid, MoveDirection.Down);
-          }}
-        >
-          <ListItemIcon>
-              <SvgPath path = {SystemIcon.cone_down} />
-          </ListItemIcon>
-          Move Down
-        </MenuItem>
-
-        <Divider />
-
-        <MenuItem
-          disabled = {groupUuid.equals((this.context as KeeData).database.getDefaultGroup().uuid)}
-          onClick = {() => {
-            this.setState({isContextMenuOpen: false});
-            (this.context as KeeData).deleteGroup(groupUuid);
-          }}
-        >
-          <ListItemIcon>
-              <SvgPath path = {DefaultKeeIcon.trash} />
-          </ListItemIcon>
-          Delete Group
-        </MenuItem>
-      </Menu>
-    );
-  }
+    </Menu>
+  );
 }
 
-export default withStyles(groupListStyles, { withTheme: true })(GroupContextMenu)
 

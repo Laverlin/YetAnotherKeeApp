@@ -1,8 +1,22 @@
-import * as React from 'react';
-import { Checkbox, createStyles, FormControlLabel, IconButton,  Popover, TextField, Theme,  WithStyles, withStyles } from '@material-ui/core';
-import { KeeData, KeeDataContext, SystemIcon } from '../../entity';
+import React, {useState} from 'react';
+import {
+  Checkbox,
+  createStyles,
+  FormControlLabel,
+  IconButton,
+  Popover,
+  TextField,
+  Theme,
+  WithStyles,
+  withStyles
+} from '@material-ui/core';
+import { SystemIcon } from '../../entity';
 import { SvgPath } from '../common';
-import {  KdbxEntry, KdbxGroup, ProtectedValue} from 'kdbxweb';
+import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import { closePanel, customPropertyPanelAtom } from '../../entity/state/PanelStateAtoms';
+import { editSelectedItem } from '../../entity/state/Atom';
+import { ProtectedValue } from 'kdbxweb';
 
 const styles = (theme: Theme) =>  createStyles({
   root: {
@@ -19,98 +33,71 @@ const styles = (theme: Theme) =>  createStyles({
 
 });
 
-interface ICustomPropertyPanelProps  extends WithStyles<typeof styles> {
-  panelAncor: Element;
-  isPanelOpen: boolean;
-  onClose: {(): void};
-  entry: KdbxEntry;
+interface IProps  extends WithStyles<typeof styles> {
+  entry: KdbxItemWrapper;
 }
 
-interface ICustomPropertyStateProps {
-  customPropertyName: string,
-  isProtected: boolean
-}
+const CustomPropertyPanel: React.FC<IProps> = ({classes, entry}) => {
+  const [customPropertyName, setCustomPropName] = useState('');
+  const [isProtected, toggleIsProtected] = useState(false);
+  const [panelState, setPanelState] = useRecoilState(customPropertyPanelAtom);
+  const editEntry = useSetRecoilState(editSelectedItem);
 
-class CustomPropertyPanel extends React.Component<ICustomPropertyPanelProps, ICustomPropertyStateProps> {
-  static contextType = KeeDataContext;
-  constructor(props: ICustomPropertyPanelProps) {
-    super(props);
-    this.handleAddCustomProperty = this.handleAddCustomProperty.bind(this);
-
-    this.state = {
-      customPropertyName: '',
-      isProtected: false
-    }
-
-  }
-
-  handleKeyPress = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyPress = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter') {
-      this.handleAddCustomProperty();
+      handleAddCustomProperty();
       event.preventDefault();
     }
   }
 
-  handleAddCustomProperty() {
-    this.props.onClose();
-    if (!this.state.customPropertyName) {
+  const handleAddCustomProperty = () => {
+    if (!customPropertyName)
       return;
-    }
-    (this.context as KeeData).updateEntry(
-      this.props.entry,
-      entry => {
-      if (entry instanceof KdbxEntry) {
-        entry.fields.set(
-          this.state.customPropertyName,
-          this.state.isProtected
-            ? ProtectedValue.fromString('')
-            : ''
-        );
-      }
-    });
 
-    this.setState({customPropertyName: '', isProtected: false});
+    editEntry(entry.applyChanges(entry =>
+      entry.setField(
+        customPropertyName,
+        isProtected ? ProtectedValue.fromString('') : ''
+      )
+    ));
+    setCustomPropName('');
+    toggleIsProtected(false);
+    setPanelState(closePanel);
   }
 
-  public render() {
-
-    const { classes, panelAncor, isPanelOpen } = this.props;
-    const { customPropertyName: inputValue } = this.state;
-
-    return (
-      <Popover
-        open = {isPanelOpen}
-        anchorEl = {panelAncor}
-        anchorOrigin = {{vertical: 'bottom', horizontal: 'center'}}
-        transformOrigin = {{vertical: 'top', horizontal: 'left'}}
-        onClose = {() => this.props.onClose()}
-      >
-        <div className = {classes.root} onKeyPress = {this.handleKeyPress}>
-          <TextField
-            id = 'customProperty'
-            fullWidth
-            label = 'Property Name'
-            variant = "outlined"
-            value = {inputValue}
-            onChange = {e => this.setState({customPropertyName: e.target.value})}
-          />
-          <FormControlLabel
-            control = {
-              <Checkbox
-                checked = {this.state.isProtected}
-                onChange = {() => this.setState({isProtected: !this.state.isProtected})}
-                color = 'primary'
-              />
-            }
-            label = 'Protected Value'
-          />
-          <IconButton onClick = {this.handleAddCustomProperty}>
-            <SvgPath path = {SystemIcon.enterKey} />
-          </IconButton>
-        </div>
-      </Popover>
-    );
-  }
+  return (
+    <Popover
+      open = {panelState.isShowPanel}
+      anchorEl = {panelState.panelAnchor}
+      anchorOrigin = {{vertical: 'bottom', horizontal: 'center'}}
+      transformOrigin = {{vertical: 'top', horizontal: 'left'}}
+      onClose = {() => setPanelState(closePanel)}
+    >
+      <div className = {classes.root} onKeyPress = {handleKeyPress}>
+        <TextField
+          id = 'customProperty'
+          fullWidth
+          label = 'Property Name'
+          variant = "outlined"
+          value = {customPropertyName}
+          onChange = {e => setCustomPropName(e.target.value)}
+        />
+        <FormControlLabel
+          control = {
+            <Checkbox
+              checked = {isProtected}
+              onChange = {() => toggleIsProtected(!isProtected)}
+              color = 'primary'
+            />
+          }
+          label = 'Protected Value'
+        />
+        <IconButton onClick = {handleAddCustomProperty}>
+          <SvgPath path = {SystemIcon.enterKey} />
+        </IconButton>
+      </div>
+    </Popover>
+  );
 }
 
 export default withStyles(styles, { withTheme: true })(CustomPropertyPanel);

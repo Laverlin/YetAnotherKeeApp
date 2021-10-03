@@ -1,6 +1,6 @@
 import electron from "electron"
-import React from "react";
-import { RouteComponentProps, withRouter } from "react-router-dom";
+import React, { FC, useState } from "react";
+import { RouteComponentProps, useLocation, withRouter } from "react-router-dom";
 import {  createStyles, WithStyles, withStyles, Theme } from "@material-ui/core/styles";
 import {AppBar, Toolbar, IconButton, Typography, Tooltip} from "@material-ui/core";
 import clsx from "clsx";
@@ -11,6 +11,8 @@ import SearchBox from "./SearchBox";
 import SortMenu from "./SortMenu";
 import { EntryChangedEvent } from "../../entity/KeeEvent";
 import SettingPanel from "./SettingPanel";
+import { useSetRecoilState } from "recoil";
+import { openPanel, toolSortMenuAtom } from "../../entity/state/PanelStateAtoms";
 
 
 const styles = (theme: Theme) =>  createStyles({
@@ -95,148 +97,128 @@ const styles = (theme: Theme) =>  createStyles({
     }
 });
 
-interface Props extends WithStyles<typeof styles>, RouteComponentProps  {}
+interface IProps extends WithStyles<typeof styles>, RouteComponentProps  {}
 
 // Tool Bar
 //
-class AppToolBar extends React.Component<Props>
-{
-  static contextType = KeeDataContext;
+const AppToolBar: FC<IProps> = ({classes}) => {
 
-  state = {
-    isMaximized: electron.remote.getCurrentWindow().isMaximized(),
-    isSortMenuOpen: false,
-    sortField: 'Title',
-    isDbChanged: false,
-    isSettingPanelOpen: false
-  }
+  const setSortMenu = useSetRecoilState(toolSortMenuAtom);
 
-  constructor(props: Props)
-  {
-    super(props);
-    this.handleMaximizeWindow = this.handleMaximizeWindow.bind(this);
-    this.handleEntryChanded = this.handleEntryChanded.bind(this);
-    this.handleSave = this.handleSave.bind(this);
-    this.handleBackClick = this.handleBackClick.bind(this);
-  }
+  const [isMaximized, setIsMaximized] = useState(electron.remote.getCurrentWindow().isMaximized());
+  const [isSettingPanelOpen, setSettingPanel] = useState(false);
 
-  componentDidMount() {
-    (this.context as KeeData).addEventListener(EntryChangedEvent, KeeData.anyEntryUuid, this.handleEntryChanded);
-  }
-
-  componentWillUnmount() {
-    (this.context as KeeData).removeEventListener(EntryChangedEvent, KeeData.anyEntryUuid, this.handleEntryChanded);
-  }
-
-  handleEntryChanded(_: EntryChangedEvent) {
-    this.setState({isDbChanged: true});
-  }
-
-  handleMaximizeWindow() {
-    this.setState({isMaximized: !this.state.isMaximized});
+  const handleMaximizeWindow = () => {
+    setIsMaximized(!isMaximized);
     electron.remote.getCurrentWindow().isMaximized()
       ? electron.remote.getCurrentWindow().restore()
       : electron.remote.getCurrentWindow().maximize();
   }
 
-  handleCloseWindow = () => electron.remote.getCurrentWindow().close();
+  const handleCloseWindow = () => electron.remote.getCurrentWindow().close();
 
-  handleMinimizeWindow = () => electron.remote.getCurrentWindow().minimize();
+  const handleMinimizeWindow = () => electron.remote.getCurrentWindow().minimize();
 
-  handleBackClick() {
-    this.setState({isDbChanged: false});
-    this.props.history.goBack();
+  const handleBackClick = () => {
+    //this.setState({isDbChanged: false});
+    history.back();
   }
 
-  async handleSave() {
-    await (this.context as KeeData).saveDb();
-    this.setState({isDbChanged: false});
+  const handleSave = () => {
+    //await (this.context as KeeData).saveDb();
+    //this.setState({isDbChanged: false});
   }
 
-  render() {
-    const { classes, history }  = this.props;
-    const { isSettingPanelOpen } = this.state;
-    return(
-      <>
-      <AppBar position="absolute">
+  const location = useLocation();
 
-        <Toolbar className = {classes.appBar}>
-          <div className = {classes.resizer} />
+  return(
+    <>
+    <AppBar position="absolute">
+
+      <Toolbar className = {classes.appBar}>
+        <div className = {classes.resizer} />
 
 
-          {(history.location.pathname != '/') &&
-            <>
-              <Typography className = {classes.dbName}> {'/// ' + (this.context as KeeData).dbName}</Typography>
-              <div className = {classes.space15}>
-                {this.state.isDbChanged && <Typography variant='h5'>*</Typography>}
-              </div>
-              <Tooltip title = {'Save ' + (this.context as KeeData).dbName}>
-                <IconButton
-                  color = "inherit"
-                  className = {clsx(this.state.isDbChanged ? classes.button : classes.buttonDisabled)}
-                  onClick = {this.handleSave}
-                >
-                  <SvgPath className = {classes.icon20} path = {SystemIcon.save} />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title = {'Open another file'}>
-                <IconButton
-                  color = "inherit"
-                  className = {classes.button}
-                  onClick = {this.handleBackClick}
-                >
-                  <SvgPath className = {classes.icon20} path = {SystemIcon.openFile} />
-                </IconButton>
-              </Tooltip>
-              <div className = {classes.pushRight}>
-                <SearchBox />
-              </div>
-              <SortMenu buttonClassName = {classes.button}/>
-            </>
+        {(location.pathname != '/') &&
+          <>
+            <Typography className = {classes.dbName}> {`/// `}</Typography>
+            <div className = {classes.space15}>
+              {false && <Typography variant='h5'>*</Typography>}
+            </div>
+            <Tooltip title = {`Save `}>
+              <IconButton
+                color = "inherit"
+                className = {clsx(false ? classes.button : classes.buttonDisabled)}
+                onClick = {handleSave}
+              >
+                <SvgPath className = {classes.icon20} path = {SystemIcon.save} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title = {'Open another file'}>
+              <IconButton
+                color = "inherit"
+                className = {classes.button}
+                onClick = {handleBackClick}
+              >
+                <SvgPath className = {classes.icon20} path = {SystemIcon.openFile} />
+              </IconButton>
+            </Tooltip>
+            <div className = {classes.pushRight}>
+              <SearchBox />
+            </div>
+            <Tooltip title = 'Sort'>
+              <IconButton
+                color="inherit"
+                className = {classes.button}
+                onClick = {e => setSortMenu(openPanel(e.currentTarget))}
+              >
+                <SvgPath className = {classes.icon20} path = {SystemIcon.sort}/>
+              </IconButton>
+            </Tooltip>
+            <SortMenu />
+          </>
+        }
+
+        <Tooltip title = 'Settings'>
+          <IconButton
+            color="inherit"
+            className = {clsx(classes.button, classes.buttonMinimize)}
+            onClick = {() => setSettingPanel(true)}
+          >
+            <SvgPath className = {classes.icon20} path = {SystemIcon.settings} />
+          </IconButton>
+        </Tooltip>
+        <span className = {classes.space}/>
+        <IconButton
+          color="inherit"
+          className = {clsx(classes.button)}
+          onClick = {handleMinimizeWindow}>
+          <SvgPath className = {classes.icon15} path = {SystemIcon.minimizeThin} />
+        </IconButton>
+        <IconButton
+          color="inherit"
+          className = {clsx(classes.button)}
+          onClick = {handleMaximizeWindow}>
+          { isMaximized
+            ? <SvgPath className = {classes.icon15} path = {SystemIcon.restoreThin} />
+            : <SvgPath className = {classes.icon15} path = {SystemIcon.maximizeThin} />
           }
+        </IconButton>
+        <IconButton
+          color="inherit"
+          className = {clsx(classes.button, classes.buttonClose)}
+          onClick={handleCloseWindow}>
+          <SvgPath className = {classes.icon15} path = {SystemIcon.xMarkThin} />
+        </IconButton>
+      </Toolbar> 
+    </AppBar>
 
-          <Tooltip title = 'Settings'>
-            <IconButton
-              color="inherit"
-              className = {clsx(classes.button, classes.buttonMinimize)}
-              onClick = {() => this.setState({isSettingPanelOpen: true})}
-            >
-              <SvgPath className = {classes.icon20} path = {SystemIcon.settings} />
-            </IconButton>
-          </Tooltip>
-          <span className = {classes.space}/>
-          <IconButton
-            color="inherit"
-            className = {clsx(classes.button)}
-            onClick={this.handleMinimizeWindow}>
-            <SvgPath className = {classes.icon15} path = {SystemIcon.minimizeThin} />
-          </IconButton>
-          <IconButton
-            color="inherit"
-            className = {clsx(classes.button)}
-            onClick={this.handleMaximizeWindow}>
-            { this.state.isMaximized
-              ? <SvgPath className = {classes.icon15} path = {SystemIcon.restoreThin} />
-              : <SvgPath className = {classes.icon15} path = {SystemIcon.maximizeThin} />
-            }
-          </IconButton>
-          <IconButton
-            color="inherit"
-            className = {clsx(classes.button, classes.buttonClose)}
-            onClick={this.handleCloseWindow}>
-            <SvgPath className = {classes.icon15} path = {SystemIcon.xMarkThin} />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-
-      <SettingPanel
-        isPanelOpen = {isSettingPanelOpen}
-        onClose = {() => this.setState({isSettingPanelOpen: false})}
-      />
-
-    </>
-    );
-  }
+    <SettingPanel
+      isPanelOpen = {isSettingPanelOpen}
+      onClose = {() => setSettingPanel(false)}
+    />
+  </>
+  );
 }
 
 export default withRouter(withStyles(styles, { withTheme: true })(AppToolBar));

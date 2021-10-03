@@ -120,7 +120,6 @@ class SelectDb extends React.Component<Props> {
   handleFileRemove(event: React.MouseEvent<HTMLButtonElement>, file: string) {
     event.stopPropagation();
     this.#userSetting.recentFiles = this.#userSetting.recentFiles.filter(f => f !== file);
-    //this.#setttingStorage.saveSettings(this.#userSetting);
     this.#userSetting.save();
     this.forceUpdate();
   }
@@ -129,7 +128,6 @@ class SelectDb extends React.Component<Props> {
     this.#userSetting.recentFiles = this.#userSetting.recentFiles.filter(f => f !== file);
     if (this.#userSetting.recentFiles.unshift(file) > 8)
       this.#userSetting.recentFiles.pop();
-    //this.#setttingStorage.saveSettings(this.#userSetting);
     this.#userSetting.save()
   }
 

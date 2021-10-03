@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import * as React from 'react';
+import React, { FC } from 'react';
 import {
   Chip,
   createStyles,
@@ -12,10 +12,13 @@ import {
   WithStyles
 } from '@material-ui/core';
 import clsx from 'clsx';
-import { KeeData, KeeDataContext, SystemIcon } from '../../entity';
-import { KdbxBinary, KdbxBinaryWithHash, KdbxEntry, KdbxGroup, ProtectedValue } from 'kdbxweb';
+import { SystemIcon } from '../../entity';
+import { KdbxBinary, KdbxBinaryWithHash, ProtectedValue } from 'kdbxweb';
 import { SvgPath } from '../common';
 import { remote } from 'electron';
+import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
+import { useSetRecoilState } from 'recoil';
+import { editSelectedItem } from '../../entity/state/Atom';
 
 const styles = (theme: Theme) =>  createStyles({
   outlined: {
@@ -30,6 +33,9 @@ const styles = (theme: Theme) =>  createStyles({
     borderColor: theme.palette.action.disabled,
     borderStyle: 'solid',
     borderRadius:'4px',
+  },
+
+  hoverBorder: {
     '&:hover': {
       borderColor: theme.palette.text.primary
     },
@@ -66,54 +72,40 @@ const styles = (theme: Theme) =>  createStyles({
   },
 })
 
-interface IAttachInputProps extends WithStyles<typeof styles> {
-  entry: KdbxEntry,
-  disabled: boolean
+interface IProps extends WithStyles<typeof styles> {
+  entry: KdbxItemWrapper,
+  disabled?: boolean
 }
 
-class AttachInput extends React.Component<IAttachInputProps> {
-  static contextType = KeeDataContext;
-  constructor(props: IAttachInputProps) {
-    super(props);
-    this.handleAddAttachment = this.handleAddAttachment.bind(this);
-    this.handleDeleteAttachment = this.handleDeleteAttachment.bind(this);
-    this.handleSaveAttachment = this.handleSaveAttachment.bind(this);
-  }
+const AttachInput: FC<IProps> = ({classes, entry, disabled}) => {
 
-  handleAddAttachment() {
+  const setEntryState = useSetRecoilState(editSelectedItem);
+
+  const handleAddAttachment = () => {
     const files = remote.dialog.showOpenDialogSync({properties: ['openFile']});
     if (!files){
       return
     }
 
-    (this.context as KeeData).updateEntry(
-      this.props.entry,
-      entry => {
-        if (entry instanceof KdbxEntry) {
-          files.forEach(file => {
-            const buffer = fs.readFileSync(file);
-            const binary: KdbxBinary = new Uint8Array(buffer).buffer;
-            entry.binaries.set(path.basename(file), binary);
-          })
-        }
+    setEntryState(entry.applyChanges(entry => {
+      files.forEach(file => {
+        const buffer = fs.readFileSync(file);
+        const binary: KdbxBinary = new Uint8Array(buffer).buffer;
+        entry.binaries.set(path.basename(file), binary);
       });
+    }));
   }
 
-  handleDeleteAttachment(key: string) {
-    (this.context as KeeData).updateEntry(
-      this.props.entry,
-        entry => {
-        (entry as KdbxEntry).binaries.delete(key);
-      }
-    );
+  const handleDeleteAttachment = (key: string) => {
+    setEntryState(entry.applyChanges(entry => entry.binaries.delete(key)));
   }
 
-  handleSaveAttachment(key: string) {
+  const handleSaveAttachment = (key: string) => {
     const filePath = remote.dialog.showSaveDialogSync({defaultPath: key});
     if (!filePath){
       return
     }
-    let buffer = this.props.entry.binaries.get(key);
+    let buffer = entry.binaries.get(key);
     if (!buffer) {
       return
     }
@@ -125,44 +117,39 @@ class AttachInput extends React.Component<IAttachInputProps> {
     fs.writeFileSync(filePath, new Uint8Array(data));
   }
 
-  public render() {
-    const { classes, entry, disabled }  = this.props;
-    return (
-      <div className = {classes.outlined} >
-        <Typography variant="caption" className = {classes.outlinedCaption}>&nbsp;Attached&nbsp;</Typography>
-        <div className = {clsx(classes.outlinedContent, classes.ellipsis)}>
-          { Array.from(entry.binaries.keys()).map(k =>
-              <Tooltip title = {k} key = {k}>
-                <Chip className = {classes.ellipsis}
-                  style = {{margin:'2px'}}
-                  variant = "outlined"
-                  size = "small"
-                  label = {k}
-                  onDoubleClick = {()=>{this.handleSaveAttachment(k)}}
-                  onDelete = {disabled ? undefined : () => {this.handleDeleteAttachment(k)}}
-                />
-              </Tooltip>
-            )
-          }
-          {entry.binaries.size === 0 &&
-
-            <div className = {clsx(classes.ellipsis, classes.emptySplash)}>
-              No Attachments
-            </div>
-
-          }
-          <div style = {{marginLeft:'auto'}}>
-            <IconButton
-              disabled = {disabled}
-              onClick = {this.handleAddAttachment}
-            >
-                <SvgPath path = {SystemIcon.attachFile} />
-            </IconButton>
+  return (
+    <div className = {clsx(classes.outlined, !disabled && classes.hoverBorder)} >
+      <Typography variant="caption" className = {classes.outlinedCaption}>&nbsp;Attached&nbsp;</Typography>
+      <div className = {clsx(classes.outlinedContent, classes.ellipsis)}>
+        { Array.from(entry.binaries.keys()).map(k =>
+            <Tooltip title = {k} key = {k}>
+              <Chip className = {classes.ellipsis}
+                style = {{margin:'2px'}}
+                variant = "outlined"
+                size = "small"
+                label = {k}
+                onDoubleClick = {() => {handleSaveAttachment(k)}}
+                onDelete = {disabled ? undefined : () => {handleDeleteAttachment(k)}}
+              />
+            </Tooltip>
+          )
+        }
+        {entry.binaries.size === 0 &&
+          <div className = {clsx(classes.ellipsis, classes.emptySplash)}>
+            No Attachments
           </div>
+        }
+        <div style = {{marginLeft:'auto'}}>
+          <IconButton
+            disabled = {disabled}
+            onClick = {handleAddAttachment}
+          >
+              <SvgPath path = {SystemIcon.attachFile} />
+          </IconButton>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
 }
 
 export default withStyles(styles, { withTheme: true })(AttachInput);
