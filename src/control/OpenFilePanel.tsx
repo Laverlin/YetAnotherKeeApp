@@ -105,7 +105,6 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
   const [error, setError] = useState('');
 
   ///TMP!!
-  const keeData = useContext(KeeDataContext)
   const [_, forceUpdate] = useReducer(x => x + 1, 0);
   ///END TMP
 
@@ -153,10 +152,8 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
           setStats(stat);
         }
         updateRecentFiles(selectedFileName);
+        
 
-        ///TMP!!
-        await (keeData as KeeData).loadDb(selectedFileName, ProtectedValue.fromString(password));
-        ///
         history.push("/app");
       }
       catch (error) {

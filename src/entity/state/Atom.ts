@@ -90,10 +90,13 @@ export const editSelectedItem = selector<KdbxItemWrapper | undefined>({
 export const entriesSelector = selector<KdbxItemWrapper[]>({
   key: 'entriesSelector',
   get: ({get}) => {
+    const selectedGroup = get(selectedGroupSelector);
+    if (!selectedGroup)
+      return [];
+
     return get(keeStateAtom)
-      .filter(i => !i.isGroup &&
-        (i.parentUuid?.equals(get(selectedGroupSelector)?.uuid) ||
-          (get(selectedGroupSelector)?.uuid.equals(KeeFileManager.allItemsGroupUuid) && !i.isRecycled)
+      .filter(i => (!i.isGroup || selectedGroup.isRecycleBin ) &&
+        (i.parentUuid?.equals(selectedGroup.uuid) || (selectedGroup.isAllItemsGroup && !i.isRecycled)
         )
       )
   }
@@ -176,6 +179,17 @@ export const filteredEntriesSelector = selector<KdbxItemWrapper[]>({
     filtered = filtered.slice().sort(sortField.compare)
     return filtered;
   }
+})
+
+export const isDbSavedSelector = selector<boolean>({
+  key:'global/isDbSaved',
+  get: ({get}) => { return !!get(keeStateAtom).find(e => e.isChanged) },
+  set: ({set}) => set(keeStateAtom, state => {
+    let newState = state
+    for(let item of state)
+      newState = updateItem(newState, item.applyChanges(i => i.isChanged = false))
+    return newState;
+  })
 })
 
 const updateItem = (entries: KdbxItemWrapper[], updatedEntry: KdbxItemWrapper) => {

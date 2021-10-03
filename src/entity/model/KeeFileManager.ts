@@ -17,9 +17,11 @@ export class KeeFileManager {
     const database = await Kdbx.load(new Uint8Array(data).buffer, credentials);
     this._database = database;
     this._allItems = Array.from(this.database.getDefaultGroup().allGroupsAndEntries());
-
+    this._filePath = filePath;
     let stats: GroupStatistics[] = [];
-    let entries: KdbxItemWrapper[] = [this._allItemsWrapperGroup];
+    let allItemsWrapperGroup = this._allItemsWrapperGroup;
+    allItemsWrapperGroup.isSelected = true;
+    let entries: KdbxItemWrapper[] = [allItemsWrapperGroup];
     this._context = {
       defaultGroupUuid: database.getDefaultGroup().uuid,
       recycleBinUuid: database.meta.recycleBinUuid
@@ -32,6 +34,17 @@ export class KeeFileManager {
       .map(item => GroupStatistics.fromKdbxEntry(item as KdbxGroup))
     stats.push(this._allItemsStats(entries));
     return [entries, stats] as const;
+  }
+
+  public static async SaveFile() {
+    assert(this.filePath);
+    assert(this.database);
+    let db = await this.database.save();
+    fs.writeFileSync(this.filePath, Buffer.from(db));
+  }
+
+  public static get filePath() {
+    return this._filePath;
   }
 
   public static get context(): IKdbxContext {
@@ -147,6 +160,7 @@ export class KeeFileManager {
   private static _context: IKdbxContext | undefined
   private static _database: Kdbx | undefined
   private static _allItems: (KdbxEntry | KdbxGroup)[]
+  private static _filePath: string = ''
   private static _getAllItemsGroup()
   {
     let group = new KdbxGroup();

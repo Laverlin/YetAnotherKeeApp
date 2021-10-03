@@ -5,14 +5,16 @@ import {  createStyles, WithStyles, withStyles, Theme } from "@material-ui/core/
 import {AppBar, Toolbar, IconButton, Typography, Tooltip} from "@material-ui/core";
 import clsx from "clsx";
 
-import { KeeData, KeeDataContext, SystemIcon } from "../../entity";
+import {  SystemIcon } from "../../entity";
 import { SvgPath } from "../common";
 import SearchBox from "./SearchBox";
 import SortMenu from "./SortMenu";
-import { EntryChangedEvent } from "../../entity/KeeEvent";
 import SettingPanel from "./SettingPanel";
-import { useSetRecoilState } from "recoil";
+import { useSetRecoilState, useRecoilState } from "recoil";
 import { openPanel, toolSortMenuAtom } from "../../entity/state/PanelStateAtoms";
+import { isDbSavedSelector } from "../../entity/state/Atom";
+import { KeeFileManager } from "../../entity/model/KeeFileManager";
+import path from "path";
 
 
 const styles = (theme: Theme) =>  createStyles({
@@ -104,6 +106,7 @@ interface IProps extends WithStyles<typeof styles>, RouteComponentProps  {}
 const AppToolBar: FC<IProps> = ({classes}) => {
 
   const setSortMenu = useSetRecoilState(toolSortMenuAtom);
+  const [isDbSaved, setDbSaved] = useRecoilState(isDbSavedSelector);
 
   const [isMaximized, setIsMaximized] = useState(electron.remote.getCurrentWindow().isMaximized());
   const [isSettingPanelOpen, setSettingPanel] = useState(false);
@@ -125,10 +128,11 @@ const AppToolBar: FC<IProps> = ({classes}) => {
   }
 
   const handleSave = () => {
-    //await (this.context as KeeData).saveDb();
-    //this.setState({isDbChanged: false});
+    KeeFileManager.SaveFile();
+    setDbSaved(true);
   }
 
+  const dbName = path.basename(KeeFileManager.filePath);
   const location = useLocation();
 
   return(
@@ -141,14 +145,14 @@ const AppToolBar: FC<IProps> = ({classes}) => {
 
         {(location.pathname != '/') &&
           <>
-            <Typography className = {classes.dbName}> {`/// `}</Typography>
+            <Typography className = {classes.dbName}> {`/// ${dbName}`}</Typography>
             <div className = {classes.space15}>
-              {false && <Typography variant='h5'>*</Typography>}
+              {isDbSaved && <Typography variant='h5'>*</Typography>}
             </div>
-            <Tooltip title = {`Save `}>
+            <Tooltip title = {`Save ${dbName}`}>
               <IconButton
                 color = "inherit"
-                className = {clsx(false ? classes.button : classes.buttonDisabled)}
+                className = {clsx(isDbSaved ? classes.button : classes.buttonDisabled)}
                 onClick = {handleSave}
               >
                 <SvgPath className = {classes.icon20} path = {SystemIcon.save} />
@@ -210,7 +214,7 @@ const AppToolBar: FC<IProps> = ({classes}) => {
           onClick={handleCloseWindow}>
           <SvgPath className = {classes.icon15} path = {SystemIcon.xMarkThin} />
         </IconButton>
-      </Toolbar> 
+      </Toolbar>
     </AppBar>
 
     <SettingPanel

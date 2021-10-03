@@ -7,7 +7,6 @@ import { KeeFileManager } from "./KeeFileManager";
  */
 export class KdbxItemWrapper {
 
-  private _isChanged: boolean
   private _context: IKdbxContext
   private _uuid: KdbxUuid
   private _index: number
@@ -26,7 +25,7 @@ export class KdbxItemWrapper {
     this._uuid = uuid;
     this._index = index;
     this._context = options;
-    this._isChanged = false;
+    this.isChanged = false;
     this.isSelected = false;
     this.isAllItemsGroup = false;
   }
@@ -39,15 +38,11 @@ export class KdbxItemWrapper {
 
   isSelected: boolean;
   isAllItemsGroup: boolean;
+  isChanged: boolean;
 
   /** Readonly unique identifier of entity
    */
   get uuid(): KdbxUuid { return this._uuid };
-
-  /** Returns is this entry has been changed since last save
-   */
-  get isChanged(): boolean { return this._isChanged };
-  //set isChanged(value: boolean) { this._isChanged = value};
 
   /** Readonly unique identifier of parent entity
    */
@@ -216,7 +211,7 @@ export class KdbxItemWrapper {
 
   applyChanges(action: (item: KdbxItemWrapper) => void) {
     let item = new KdbxItemWrapper(this.uuid, this._index, this._context);
-    item._isChanged = this.isChanged;
+    item.isChanged = this.isChanged;
     item.isSelected = this.isSelected;
     item.isAllItemsGroup = this.isAllItemsGroup;
     action(item);
@@ -232,7 +227,7 @@ export class KdbxItemWrapper {
       this._entry.times.update();
     }
     update(this._entry);
-    this._isChanged = true;
+    this.isChanged = true;
   }
 }
 
