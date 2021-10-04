@@ -1,12 +1,10 @@
 import * as React from 'react';
 import { createStyles, GridList, GridListTile, IconButton,  Popover, Theme,  WithStyles, withStyles } from '@material-ui/core';
-import { DefaultColors, SystemIcon } from '../../entity';
+import { DefaultColors, SystemIcon, closePanel, colorChoisePanelAtom, KdbxItemState, itemStateAtom } from '../../entity';
 import { SvgPath, scrollBar } from '../common';
 import clsx from 'clsx';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { editSelectedItem } from '../../entity/state/Atom';
-import { closePanel, colorChoisePanelAtom } from '../../entity/state/PanelStateAtoms';
-import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
+
 
 const styles = (theme: Theme) =>  createStyles({
   root: {
@@ -44,16 +42,16 @@ const styles = (theme: Theme) =>  createStyles({
 });
 
 interface IProps  extends WithStyles<typeof styles> {
-  entry: KdbxItemWrapper;
+  entry: KdbxItemState;
 }
 
 const ColorChoicePanel: React.FC<IProps> = ({classes, entry}) => {
 
   const [panelState, setPanelState] = useRecoilState(colorChoisePanelAtom);
-  const setEntryState = useSetRecoilState(editSelectedItem);
+  const setEntryState = useSetRecoilState(itemStateAtom(entry.uuid.id));
 
   const handleSetColor = (color: string) => {
-    setEntryState(entry.applyChanges(entry => entry.bgColor = color));
+    setEntryState(entry.setBgColor(color));
     setPanelState(closePanel);
   }
 

@@ -11,11 +11,10 @@ import {
   withStyles,
   WithStyles
 } from "@material-ui/core";
-import {DefaultColors, SystemIcon } from "../../entity";
+import {DefaultColors, SystemIcon, tagFilterAtom, tagSelector } from "../../entity";
 import {groupListStyles} from "./groupListStyles"
 import {SvgPath} from "../common";
 import { useRecoilState, useRecoilValue } from "recoil";
-import { tagFilterAtom, tagSelector } from "../../entity/state/Atom";
 
 interface IProps extends WithStyles<typeof groupListStyles> {}
 

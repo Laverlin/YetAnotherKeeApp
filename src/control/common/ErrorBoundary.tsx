@@ -6,7 +6,6 @@ import clsx from "clsx";
 const styles = (theme: Theme) =>  createStyles({
   root: {
     padding: theme.spacing(2),
-    //height: '500px',
     width: '800px',
   },
   header: {

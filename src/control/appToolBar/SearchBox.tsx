@@ -9,10 +9,9 @@ import {
   withStyles,
   WithStyles
 } from "@material-ui/core";
-import { SystemIcon } from "../../entity";
+import { SystemIcon, searchFilterAtom } from "../../entity";
 import { SvgPath } from "../common";
 import { useRecoilState } from "recoil";
-import { searchFilterAtom } from "../../entity/state/Atom";
 
 const styles = (theme: Theme) =>  createStyles({
 

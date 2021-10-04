@@ -5,15 +5,15 @@ import {  createStyles, WithStyles, withStyles, Theme } from "@material-ui/core/
 import {AppBar, Toolbar, IconButton, Typography, Tooltip} from "@material-ui/core";
 import clsx from "clsx";
 
-import {  SystemIcon } from "../../entity";
+import {  currentContext, isDbSavedSelector, SystemIcon, openPanel, toolSortMenuAtom } from "../../entity";
 import { SvgPath } from "../common";
 import SearchBox from "./SearchBox";
 import SortMenu from "./SortMenu";
 import SettingPanel from "./SettingPanel";
-import { useSetRecoilState, useRecoilState } from "recoil";
-import { openPanel, toolSortMenuAtom } from "../../entity/state/PanelStateAtoms";
-import { isDbSavedSelector } from "../../entity/state/Atom";
-import { KeeFileManager } from "../../entity/model/KeeFileManager";
+import { useSetRecoilState, useRecoilValue } from "recoil";
+
+
+
 import path from "path";
 
 
@@ -106,7 +106,7 @@ interface IProps extends WithStyles<typeof styles>, RouteComponentProps  {}
 const AppToolBar: FC<IProps> = ({classes}) => {
 
   const setSortMenu = useSetRecoilState(toolSortMenuAtom);
-  const [isDbSaved, setDbSaved] = useRecoilState(isDbSavedSelector);
+  const isDbSaved = useRecoilValue(isDbSavedSelector);
 
   const [isMaximized, setIsMaximized] = useState(electron.remote.getCurrentWindow().isMaximized());
   const [isSettingPanelOpen, setSettingPanel] = useState(false);
@@ -128,11 +128,11 @@ const AppToolBar: FC<IProps> = ({classes}) => {
   }
 
   const handleSave = () => {
-    KeeFileManager.SaveFile();
-    setDbSaved(true);
+    currentContext.SaveFile();
+    //setDbSaved(true);
   }
 
-  const dbName = path.basename(KeeFileManager.filePath);
+  const dbName = path.basename(currentContext.filePath);
   const location = useLocation();
 
   return(
@@ -226,3 +226,5 @@ const AppToolBar: FC<IProps> = ({classes}) => {
 }
 
 export default withRouter(withStyles(styles, { withTheme: true })(AppToolBar));
+
+

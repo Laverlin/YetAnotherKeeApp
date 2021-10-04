@@ -3,7 +3,7 @@ import React, { FC } from "react";
 import {useRecoilValue} from 'recoil';
 import { createStyles, Theme, Typography,  withStyles, WithStyles} from "@material-ui/core";
 import { scrollBar } from "../common";
-import { filteredEntriesSelector } from "../../entity/state/Atom";
+import { filteredEntriesSelector } from "../../entity";
 import EntryItem from "./EntryItem";
 import { EntryContextMenu } from "./EntryContextMenu";
 
@@ -47,10 +47,10 @@ const EntryPanel: FC<IProps> = ({classes}) => {
     <>
       <div className = {clsx(classes.list, classes.scrollBar)}>
         {filteredEntries
-          .map(entry =>
+          .map(entryUuid =>
             <EntryItem
-              key = {entry.uuid.id}
-              entry = {entry}
+              key = {entryUuid.id}
+              entryUuid = {entryUuid}
             />
           )
         }

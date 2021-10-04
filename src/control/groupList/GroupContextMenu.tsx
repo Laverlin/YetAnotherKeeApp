@@ -1,13 +1,10 @@
 import { Divider, ListItemIcon, Menu, MenuItem} from '@material-ui/core';
 import assert from 'assert';
 import React, { FC } from 'react';
-import { useRecoilCallback, useRecoilState, useSetRecoilState } from 'recoil';
-import { DefaultKeeIcon, SystemIcon } from '../../entity';
-import { MoveDirection } from '../../entity/KeeData';
-import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
-import { KeeFileManager } from '../../entity/model/KeeFileManager';
-import { editSelectedItem, keeStateAtom, selectedEntrySelector, selectedGroupSelector } from '../../entity/state/Atom';
-import { closeItemContextMenu, groupContextMenuAtom } from '../../entity/state/PanelStateAtoms';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import { DefaultKeeIcon, closeItemContextMenu, groupContextMenuAtom, SystemIcon, treeStateUpdateSelector, currentContext, selectItemSelector } from '../../entity';
+
+
 import { SvgPath } from '../common';
 
 
@@ -16,34 +13,32 @@ export const GroupContextMenu: FC = () => {
   // Global state
   //
   const [contextMenu, setContextMenuState] = useRecoilState(groupContextMenuAtom);
-  const setItemState = useSetRecoilState(editSelectedItem);
-  const addItemToState = useRecoilCallback(
-    ({set}) => (value: KdbxItemWrapper) => { set(keeStateAtom, (cur => cur.concat(value))) }
-  );
-  const setSelectedGroup = useSetRecoilState(selectedGroupSelector);
-  const setSelectedEntry = useSetRecoilState(selectedEntrySelector);
+  const setTreeState = useSetRecoilState(treeStateUpdateSelector);
+  const setSelectedItem = useSetRecoilState(selectItemSelector);
 
   // Handlers
   //
   const handleCreateItem = (isGroup: boolean) => {
     assert(contextMenu.entry);
     setContextMenuState(closeItemContextMenu);
-    const newItem = KeeFileManager.createItem(contextMenu.entry, isGroup, 'New Group');
-    addItemToState(newItem);
-    isGroup ? setSelectedGroup(newItem) : setSelectedEntry(newItem);
+    const newItem = currentContext.createItem(contextMenu.entry.uuid, isGroup, 'New Group');
+    setTreeState(newItem);
+    setSelectedItem(newItem.item);
   }
 
-  const changeGroupOrder = (direction: MoveDirection) => {
+  const changeGroupOrder = (isUp: boolean) => {
     assert(contextMenu.entry);
     setContextMenuState(closeItemContextMenu);
-    setItemState(KeeFileManager.stepGroup(contextMenu.entry, direction));
+    const shiftedEntry = contextMenu.entry.shiftGroup(isUp);
+    if (shiftedEntry)
+      setTreeState(shiftedEntry);
   }
 
   const handleDeleteGroup = () => {
     assert(contextMenu.entry);
     setContextMenuState(closeItemContextMenu);
-    setSelectedGroup(contextMenu.entry.parent);
-    setItemState(KeeFileManager.deleteItem(contextMenu.entry));
+    //setSelectedItem(contextMenu.entry.parent);
+    setTreeState(contextMenu.entry.deleteItem());
   }
 
   return (
@@ -76,7 +71,7 @@ export const GroupContextMenu: FC = () => {
           contextMenu.entry?.isDefaultGroup ||
           contextMenu.entry?.groupSortOrder === 0
         }
-        onClick = {() => changeGroupOrder(MoveDirection.Up)}
+        onClick = {() => changeGroupOrder(true)}
       >
         <ListItemIcon>
           <SvgPath path = {SystemIcon.cone_up} />
@@ -86,7 +81,7 @@ export const GroupContextMenu: FC = () => {
 
       <MenuItem
         disabled = {contextMenu.entry?.isDefaultGroup}
-        onClick = {() => changeGroupOrder(MoveDirection.Down)}
+        onClick = {() => changeGroupOrder(false)}
       >
         <ListItemIcon>
           <SvgPath path = {SystemIcon.cone_down} />

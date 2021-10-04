@@ -9,12 +9,10 @@ import {
   withStyles,
   WithStyles
 } from '@material-ui/core';
-import { SystemIcon } from '../../entity';
+import { customPropertyMenuAtom, itemStateAtom, KdbxItemState, openPanel, passwordPanelAtom, SystemIcon } from '../../entity';
 import { SvgPath } from '../common';
 import { ProtectedValue } from 'kdbxweb';
-import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
-import { editSelectedItem } from '../../entity/state/Atom';
-import { customPropertyMenuAtom, openPanel, passwordPanelAtom } from '../../entity/state/PanelStateAtoms';
+
 
 const styles = (theme: Theme) =>  createStyles({
   fieldInput: {
@@ -23,7 +21,7 @@ const styles = (theme: Theme) =>  createStyles({
 })
 
 interface IProp extends WithStyles<typeof styles> {
-  entry: KdbxItemWrapper,
+  entry: KdbxItemState,
   fieldId: string,
   inputValue: string,
   isProtected: boolean,
@@ -35,7 +33,7 @@ interface IProp extends WithStyles<typeof styles> {
 const PropertyInput: React.FC<IProp> =
   ({classes, entry, fieldId, inputValue, isProtected, isMultiline, isCustomProperty, disabled}) => {
 
-    const changeEntry = useSetRecoilState(editSelectedItem);
+    const setEntryState = useSetRecoilState(itemStateAtom(entry.uuid.id));
     const setMenuState = useSetRecoilState(customPropertyMenuAtom);
     const setPwdPanelState = useSetRecoilState(passwordPanelAtom);
     const [isShowText, toggleShowText] = useState<boolean>(!isProtected);
@@ -44,7 +42,7 @@ const PropertyInput: React.FC<IProp> =
 
     const handlePropertyChande = (fieldId: string, value: string) => {
       const fieldValue = isProtected ? ProtectedValue.fromString(value) : value;
-      changeEntry(entry.applyChanges(entry => entry.setField(fieldId, fieldValue)))
+      setEntryState(entry.setField(fieldId, fieldValue));
     }
 
     const adornment = {

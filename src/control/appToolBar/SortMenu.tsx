@@ -7,11 +7,9 @@ import {
   withStyles,
   WithStyles
 } from "@material-ui/core";
-import { SystemIcon } from "../../entity";
+import { closePanel, toolSortMenuAtom, ISortMenuItem, sortEntriesAtom, sortMenuItems, SystemIcon } from "../../entity";
 import { SvgPath } from "../common";
 import { useRecoilState } from "recoil";
-import { ISortMenuItem, sortEntriesAtom, sortMenuItems } from "../../entity/state/Atom";
-import { closePanel, toolSortMenuAtom } from "../../entity/state/PanelStateAtoms";
 
 const styles = createStyles({
 

@@ -2,17 +2,22 @@ import { Divider, ListItemIcon, Menu, MenuItem } from '@material-ui/core';
 import assert from 'assert';
 import React, { FC } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import {  DefaultFields, DefaultKeeIcon, SystemIcon } from '../../entity';
-import { KeeFileManager } from '../../entity/model/KeeFileManager';
-import { editSelectedItem } from '../../entity/state/Atom';
-import { closeItemContextMenu, itemContextMenuAtom, notificationAtom } from '../../entity/state/PanelStateAtoms';
+import {
+  DefaultFields,
+  DefaultKeeIcon,
+  closeItemContextMenu,
+  itemContextMenuAtom,
+  notificationAtom,
+  SystemIcon,
+  treeStateUpdateSelector
+} from '../../entity';
 import { SvgPath } from '../common';
 
 export const EntryContextMenu: FC = () => {
 
   const [contextMenuState, setContextMenuState] = useRecoilState(itemContextMenuAtom);
   const setMessage = useSetRecoilState(notificationAtom);
-  const setItemState = useSetRecoilState(editSelectedItem);
+  const setTreeState = useSetRecoilState(treeStateUpdateSelector);
 
   const handleCopy = (fieldName: keyof typeof DefaultFields, event: React.MouseEvent<Element, MouseEvent>): void => {
     event.stopPropagation();
@@ -26,8 +31,8 @@ export const EntryContextMenu: FC = () => {
   const handleDeleteEntry = () =>  {
     assert(contextMenuState.entry);
     setContextMenuState(closeItemContextMenu);
-    const deletedEntry = KeeFileManager.deleteItem(contextMenuState.entry);
-    setItemState(deletedEntry);
+    const deletedEntry = contextMenuState.entry.deleteItem();
+    setTreeState(deletedEntry);
   }
 
   const entry = contextMenuState.entry;

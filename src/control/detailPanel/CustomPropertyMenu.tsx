@@ -1,33 +1,29 @@
 import React from "react"
 import { useRecoilState, useSetRecoilState } from 'recoil'
 import { ListItemIcon, Menu, MenuItem } from "@material-ui/core"
-
-import { DefaultKeeIcon, SystemIcon } from "../../entity"
+import { DefaultKeeIcon, SystemIcon, closePanel, customPropertyMenuAtom, itemStateAtom, KdbxItemState } from "../../entity"
 import { SvgPath } from "../common"
-import { closePanel, customPropertyMenuAtom } from "../../entity/state/PanelStateAtoms"
-import { editSelectedItem } from "../../entity/state/Atom"
-import { KdbxItemWrapper } from "../../entity/model/KdbxItemWrapper"
 import { ProtectedValue } from "kdbxweb"
 
 interface IProp {
-  entry: KdbxItemWrapper
+  entry: KdbxItemState
 }
 export const CustomPropertyMenu: React.FC<IProp> = ({entry}) => {
 
   const [menuState, setMenuState] = useRecoilState(customPropertyMenuAtom);
-  const setEntryState = useSetRecoilState(editSelectedItem);
+  const setEntryState = useSetRecoilState(itemStateAtom(entry.uuid.id));
 
   const handlePropertyProtection = () => {
     const fieldOriginal = entry.getField(menuState.fieldId);
     const fieldUpdated = fieldOriginal instanceof ProtectedValue
       ? fieldOriginal.getText()
       : ProtectedValue.fromString(fieldOriginal);
-    setEntryState(entry.applyChanges(entry => entry.setField(menuState.fieldId, fieldUpdated)))
+    setEntryState(entry.setField(menuState.fieldId, fieldUpdated));
     setMenuState({...closePanel, isProtected: false, fieldId: ''})
   }
 
   const handleDeleteProperty = (fieldId: string) => {
-    setEntryState(entry.applyChanges(entry => entry.deleteField(fieldId)));
+    setEntryState(entry.deleteField(fieldId));
     setMenuState({...closePanel, isProtected: false, fieldId: ''})
   }
 

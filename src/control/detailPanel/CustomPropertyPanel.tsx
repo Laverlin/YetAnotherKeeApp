@@ -10,12 +10,9 @@ import {
   WithStyles,
   withStyles
 } from '@material-ui/core';
-import { SystemIcon } from '../../entity';
+import { SystemIcon, closePanel, customPropertyPanelAtom, itemStateAtom, KdbxItemState } from '../../entity';
 import { SvgPath } from '../common';
-import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { closePanel, customPropertyPanelAtom } from '../../entity/state/PanelStateAtoms';
-import { editSelectedItem } from '../../entity/state/Atom';
 import { ProtectedValue } from 'kdbxweb';
 
 const styles = (theme: Theme) =>  createStyles({
@@ -34,14 +31,14 @@ const styles = (theme: Theme) =>  createStyles({
 });
 
 interface IProps  extends WithStyles<typeof styles> {
-  entry: KdbxItemWrapper;
+  entry: KdbxItemState;
 }
 
 const CustomPropertyPanel: React.FC<IProps> = ({classes, entry}) => {
   const [customPropertyName, setCustomPropName] = useState('');
   const [isProtected, toggleIsProtected] = useState(false);
   const [panelState, setPanelState] = useRecoilState(customPropertyPanelAtom);
-  const editEntry = useSetRecoilState(editSelectedItem);
+  const editEntry = useSetRecoilState(itemStateAtom(entry.uuid.id));
 
   const handleKeyPress = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter') {
@@ -54,12 +51,7 @@ const CustomPropertyPanel: React.FC<IProps> = ({classes, entry}) => {
     if (!customPropertyName)
       return;
 
-    editEntry(entry.applyChanges(entry =>
-      entry.setField(
-        customPropertyName,
-        isProtected ? ProtectedValue.fromString('') : ''
-      )
-    ));
+    editEntry(entry.setField(customPropertyName, isProtected ? ProtectedValue.fromString('') : ''));
     setCustomPropName('');
     toggleIsProtected(false);
     setPanelState(closePanel);

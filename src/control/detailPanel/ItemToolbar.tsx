@@ -1,13 +1,8 @@
 import React, { FC, useEffect } from 'react';
 import { createStyles, IconButton, Theme, Tooltip, Typography, withStyles, WithStyles } from '@material-ui/core';
-import { SystemIcon } from '../../entity';
+import { historyAtom, itemStateAtom, KdbxItemState, SystemIcon } from '../../entity';
 import { SvgPath } from '../common';
-import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { historyAtom } from '../../entity/state/PanelStateAtoms';
-import { editSelectedItem } from '../../entity/state/Atom';
-import { ProtectedValue } from 'kdbxweb';
-
 
 const styles = (theme: Theme) =>  createStyles({
 
@@ -38,18 +33,16 @@ const styles = (theme: Theme) =>  createStyles({
   pushRight: {
     marginLeft:'auto'
   }
-
-
 })
 
 interface IProps extends WithStyles<typeof styles> {
-  entry: KdbxItemWrapper
+  entry: KdbxItemState
 }
 
 const ItemToolbar: FC<IProps> = ({classes, entry}) => {
 
   const [historyState, setHistoryState] = useRecoilState(historyAtom(entry.uuid.id));
-  const setEntryState = useSetRecoilState(editSelectedItem);
+  const setEntryState = useSetRecoilState(itemStateAtom(entry.uuid.id));
 
   const totalVersions = entry.history.length;
   const isLast = totalVersions === historyState.historyIndex;
@@ -69,7 +62,7 @@ const ItemToolbar: FC<IProps> = ({classes, entry}) => {
   const handleDeleteVersion = (index: number) => {
     if (index === totalVersions - 1)
       setHistoryState({isInHistory: false, historyIndex: index});
-    setEntryState(entry.applyChanges(entry => entry.removeHistory(index)));
+    setEntryState(entry.removeHistoryEntry(index));
   }
 
   const modifiedTime = new Date(

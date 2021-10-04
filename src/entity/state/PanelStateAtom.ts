@@ -1,7 +1,5 @@
-import { KdbxUuid } from 'kdbxweb'
 import { atom, atomFamily } from 'recoil'
-import { KdbxItemWrapper } from '../model/KdbxItemWrapper'
-
+import { KdbxItemState } from '..'
 
 export interface IPanelState {
   panelAnchor: Element | null;
@@ -59,23 +57,6 @@ export const passwordPanelAtom = atom<IPanelState>({
   default: closePanel
 })
 
-/*
-export const historyAtom = atomFamily<IHistoryState, string>({
-  key: 'detail/historyAtom',
-  default: selectorFamily ({
-    key: 'detail/historyDefaultSelector',
-    get: _ => ({get}) => {
-      return {isInHistory: false, historyIndex: get(editSelectedItem)?.history.length || 0}
-    }
-  })
-})
-
-const getHistoryLenght = (id: string): number => {
-  const entry = KeeFileManager.allItems.find(i => i.uuid.equals(id));
-  return entry instanceof KdbxEntry ? entry.history.length : 0;
-}
-*/
-
 export const historyAtom = atomFamily<IHistoryState, string>({
   key: 'detail/historyAtom',
   default:  {
@@ -85,11 +66,11 @@ export const historyAtom = atomFamily<IHistoryState, string>({
 })
 
 export interface IItemContextMenuState extends IPanelState {
-  entry: KdbxItemWrapper | undefined
+  entry: KdbxItemState | undefined
 }
 
 export const closeItemContextMenu = {...closePanel, entry: undefined}
-export const openItemContextMenu = (anchor: Element, entry: KdbxItemWrapper) => {
+export const openItemContextMenu = (anchor: Element, entry: KdbxItemState) => {
   return {...openPanel(anchor), entry: entry};
 }
 
@@ -102,16 +83,6 @@ export const notificationAtom = atom<string>({
   key: 'global/notification',
   default: ''
 })
-
-/*
-export interface IGroupContextMenuState extends IPanelState {
-  groupUuid: KdbxUuid | undefined
-}
-export const closeGroupContextMenu = {...closePanel, groupUuid: undefined}
-export const openGroupContextMenu = (anchor: Element, groupUuid: KdbxUuid) => {
-  return {...openPanel(anchor), groupUuid: groupUuid};
-}
-*/
 
 export const groupContextMenuAtom = atom<IItemContextMenuState>({
   key: 'group/contextMenuAtom',

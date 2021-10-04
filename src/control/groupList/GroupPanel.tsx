@@ -1,45 +1,35 @@
 import { List, withStyles, WithStyles } from "@material-ui/core";
 import React, { FC, ReactFragment } from "react";
 import { useRecoilValue } from 'recoil'
-import { keeStateSelector } from "../../entity/state/Atom";
 import GroupEntry from './GroupEntry'
 import clsx from 'clsx'
 import { groupListStyles } from "./groupListStyles";
 import { ColorSelectListItem, TagSelectListItem } from ".";
-import { KdbxItemWrapper } from "../../entity/model/KdbxItemWrapper";
 import { GroupContextMenu } from "./GroupContextMenu";
+import { currentContext, treeViewSelector } from "../../entity";
+import { KdbxUuid } from "kdbxweb";
 
 interface IProps extends WithStyles<typeof groupListStyles>{}
 
 const GroupPanel: FC<IProps> = ({classes}) => {
 
-  const entries = useRecoilValue(keeStateSelector);
+  const entries = useRecoilValue(treeViewSelector);
 
   if (entries.length === 0)
     history.back();
 
-  const defaultGroup = entries.find(e => e.isDefaultGroup);
-  if (!defaultGroup)
-    throw new Error('Fatal: cannot find Default Group');
-
-  const allEntriesGroup = entries.find(e => e.isAllItemsGroup);
-  if (!allEntriesGroup)
-    throw new Error('Fatal: cannot find the All Items group');
-
-  const recycleBinGroup = entries.find(e => e.isRecycleBin);
-
-  const renderChildGroups = (group: KdbxItemWrapper, nestLevel: number = 0): ReactFragment => {
+  const renderChildGroups = (groupUuid: KdbxUuid, nestLevel: number = 0): ReactFragment => {
     return(
-      <div key = {group.uuid.id}>
+      <div key = {groupUuid.id}>
         <GroupEntry
-          entry = {group}
+          entryUuid = {groupUuid}
           nestLevel = {nestLevel}
         />
         {entries
-          .filter(e => e.isGroup && e.parentUuid && e.parentUuid.equals(group.uuid) && !e.isRecycleBin)
+          .filter(e => e.isGroup && e.parentUuid && e.parentUuid.equals(groupUuid) && !e.isRecycleBin)
           .sort((a, b) => a.groupSortOrder - b.groupSortOrder)
           .map(childGroup => (
-            renderChildGroups(childGroup, nestLevel + 1)
+            renderChildGroups(childGroup.uuid, nestLevel + 1)
         ))}
       </div>
     );
@@ -51,7 +41,7 @@ const GroupPanel: FC<IProps> = ({classes}) => {
       <div className = {classes.optionList}>
         <List disablePadding>
           <GroupEntry
-            entry = {allEntriesGroup}
+            entryUuid = {currentContext.allItemsGroupUuid}
             nestLevel = {0}
             isContextMenuDisabled = {true}
           />
@@ -62,15 +52,15 @@ const GroupPanel: FC<IProps> = ({classes}) => {
 
       <div
         className = {clsx(classes.scrollBar, classes.mainList)}
-        style = { recycleBinGroup ? {} : {bottom: 0}}
+        style = { currentContext.recycleBinUuid ? {} : {bottom: 0}}
       >
-        {renderChildGroups(defaultGroup)}
+        {renderChildGroups(currentContext.defaultGroupUuid)}
       </div>
 
-      { recycleBinGroup &&
+      { currentContext.recycleBinUuid &&
         <div className = {classes.rbList}>
             <GroupEntry
-              entry = {recycleBinGroup}
+              entryUuid = {currentContext.recycleBinUuid}
               nestLevel = {1}
               isContextMenuDisabled
             />

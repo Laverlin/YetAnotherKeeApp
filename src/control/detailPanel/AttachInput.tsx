@@ -12,13 +12,11 @@ import {
   WithStyles
 } from '@material-ui/core';
 import clsx from 'clsx';
-import { SystemIcon } from '../../entity';
+import { itemStateAtom, KdbxItemState, SystemIcon } from '../../entity';
 import { KdbxBinary, KdbxBinaryWithHash, ProtectedValue } from 'kdbxweb';
 import { SvgPath } from '../common';
 import { remote } from 'electron';
-import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
 import { useSetRecoilState } from 'recoil';
-import { editSelectedItem } from '../../entity/state/Atom';
 
 const styles = (theme: Theme) =>  createStyles({
   outlined: {
@@ -73,13 +71,13 @@ const styles = (theme: Theme) =>  createStyles({
 })
 
 interface IProps extends WithStyles<typeof styles> {
-  entry: KdbxItemWrapper,
+  entry: KdbxItemState,
   disabled?: boolean
 }
 
 const AttachInput: FC<IProps> = ({classes, entry, disabled}) => {
 
-  const setEntryState = useSetRecoilState(editSelectedItem);
+  const setEntryState = useSetRecoilState(itemStateAtom(entry.uuid.id));
 
   const handleAddAttachment = () => {
     const files = remote.dialog.showOpenDialogSync({properties: ['openFile']});
@@ -87,17 +85,15 @@ const AttachInput: FC<IProps> = ({classes, entry, disabled}) => {
       return
     }
 
-    setEntryState(entry.applyChanges(entry => {
-      files.forEach(file => {
-        const buffer = fs.readFileSync(file);
-        const binary: KdbxBinary = new Uint8Array(buffer).buffer;
-        entry.binaries.set(path.basename(file), binary);
-      });
-    }));
+    files.forEach(file => {
+      const buffer = fs.readFileSync(file);
+      const binary: KdbxBinary = new Uint8Array(buffer).buffer;
+      setEntryState(entry.addAttachment(path.basename(file), binary));
+    });
   }
 
   const handleDeleteAttachment = (key: string) => {
-    setEntryState(entry.applyChanges(entry => entry.binaries.delete(key)));
+    setEntryState(entry.deleteAttachment(key));
   }
 
   const handleSaveAttachment = (key: string) => {

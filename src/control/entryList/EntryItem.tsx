@@ -1,14 +1,20 @@
 import { createStyles, darken, IconButton, Theme, WithStyles, withStyles } from '@material-ui/core';
 import React, { FC } from 'react';
-import {useSetRecoilState} from 'recoil';
+import { useSetRecoilState, useRecoilValue} from 'recoil';
 import clsx from 'clsx';
-import { DefaultFields, DefaultKeeIcon, SystemIcon } from '../../entity';
+import {
+  DefaultFields,
+  DefaultKeeIcon,
+  SystemIcon,
+  itemContextMenuAtom,
+  notificationAtom,
+  openItemContextMenu,
+  KdbxItemState,
+  itemStateAtom,
+  selectItemSelector
+} from '../../entity';
 import { LightTooltip, SvgPath } from '../common';
-
-import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
-import { selectedEntrySelector } from '../../entity/state/Atom';
-import { itemContextMenuAtom, notificationAtom, openItemContextMenu } from '../../entity/state/PanelStateAtoms';
-
+import { KdbxUuid } from 'kdbxweb';
 
 const styles = (theme: Theme) =>  createStyles({
 
@@ -139,14 +145,16 @@ const styles = (theme: Theme) =>  createStyles({
 });
 
 interface IProps extends WithStyles<typeof styles>{
-  entry: KdbxItemWrapper
+  //entry: KdbxItemState
+  entryUuid: KdbxUuid
 }
 
-const EntryItem: FC<IProps> = ({classes, entry}) => {
+const EntryItem: FC<IProps> = ({classes, entryUuid}) => {
 
-  const changeSelection = useSetRecoilState(selectedEntrySelector);
+  const setSelection = useSetRecoilState(selectItemSelector);
   const setContextMenuState = useSetRecoilState(itemContextMenuAtom);
   const setNotification = useSetRecoilState(notificationAtom);
+  const entry = useRecoilValue(itemStateAtom(entryUuid.id));
 
   const handleCopy = (fieldName: keyof typeof DefaultFields) => {
     const value = entry.getFieldUnprotected(fieldName);
@@ -166,7 +174,7 @@ const EntryItem: FC<IProps> = ({classes, entry}) => {
       <div
         draggable
         onDragStart = {e => e.dataTransfer.setData('text', entry.uuid.id)}
-        onClick = {() => changeSelection(entry)}
+        onClick = {() => setSelection(entry)}
         className = {
           clsx(classes.listItem, entry.isSelected && classes.listItemSelected)
         }

@@ -27,7 +27,7 @@ export class KdbxUuidFactory {
 
 declare global {
   export interface Map<K, V> {
-    findValue<V>(predicate: (item: V) => boolean): V | undefined
+    findFirstValue<V>(predicate: (item: V) => boolean): V | undefined
   }
 
 }
@@ -45,7 +45,7 @@ export function findFirstOrDefault<T>(iterable: IterableIterator<T>, predicate: 
 }
 
 
-Map.prototype.findValue = function<K, V>(this: Map<K, V>, predicate: (item: V) => boolean): V | undefined {
+Map.prototype.findFirstValue = function<K, V>(this: Map<K, V>, predicate: (item: V) => boolean): V | undefined {
   for(const item of this.values()) {
     if (predicate(item))
       return item;

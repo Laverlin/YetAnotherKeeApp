@@ -1,13 +1,12 @@
 import React, { FC, useState } from 'react';
 import { Button, Checkbox, createStyles, FormControl, FormControlLabel, Grid, IconButton, InputAdornment, MenuItem,  Popover, Select, Slider, TextField, Theme,  Typography,  WithStyles, withStyles } from '@material-ui/core';
-import { DefaultKeeIcon, SystemIcon } from '../../entity';
+import { DefaultKeeIcon, closePanel, passwordPanelAtom, SystemIcon, itemStateAtom, KdbxItemState } from '../../entity';
 import { SvgPath } from '../common';
 import { ProtectedValue} from 'kdbxweb';
 import { KeysOfType, PasswordGenerator, PasswordGenerationOptions } from '../../entity/PasswordGenerator';
-import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { closePanel, passwordPanelAtom } from '../../entity/state/PanelStateAtoms';
-import { editSelectedItem } from '../../entity/state/Atom';
+
+
 
 const styles = (theme: Theme) =>  createStyles({
   root: {
@@ -27,7 +26,7 @@ const styles = (theme: Theme) =>  createStyles({
 });
 
 interface IProps  extends WithStyles<typeof styles> {
-  entry: KdbxItemWrapper;
+  entry: KdbxItemState;
 }
 
 const PasswordGeneratorPanel: FC<IProps> = ({classes, entry}) =>  {
@@ -36,7 +35,7 @@ const PasswordGeneratorPanel: FC<IProps> = ({classes, entry}) =>  {
   const [generatedPassword, setGeneratedPassword] = useState('');
 
   const [panelState, setPanelState] = useRecoilState(passwordPanelAtom);
-  const setEntryState = useSetRecoilState(editSelectedItem);
+  const setEntryState = useSetRecoilState(itemStateAtom(entry.uuid.id));
 
 
   const handleOptionChange = (option: KeysOfType<PasswordGenerationOptions, boolean>) => {
@@ -62,9 +61,7 @@ const PasswordGeneratorPanel: FC<IProps> = ({classes, entry}) =>  {
   const handleApplyPassword = () => {
     setPanelState(closePanel);
     navigator.clipboard.writeText(generatedPassword);
-    setEntryState(entry.applyChanges(entry =>
-      entry.setField('Password', ProtectedValue.fromString(generatedPassword))
-    ));
+    setEntryState(entry.setField('Password', ProtectedValue.fromString(generatedPassword)));
   }
 
   return (

@@ -4,29 +4,35 @@ import { KdbxUuid } from "kdbxweb";
 import React, { FC } from "react";
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil'
 import { appTheme } from "../../appTheme";
-import { DefaultKeeIcon, SystemIcon } from "../../entity";
-import { KdbxItemWrapper } from "../../entity/model/KdbxItemWrapper";
-import { KeeFileManager } from "../../entity/model/KeeFileManager";
-import { selectedGroupSelector, groupStatiscicAtom, editSelectedItem, keeStateAtom } from "../../entity/state/Atom";
-import { groupContextMenuAtom, openItemContextMenu } from "../../entity/state/PanelStateAtoms";
+import {
+  DefaultKeeIcon,
+  groupContextMenuAtom,
+  itemStateAtom,
+  openItemContextMenu,
+  selectItemSelector,
+  SystemIcon,
+  treeStateUpdateSelector,
+} from "../../entity";
+import { GroupStatistics } from "../../entity/model/GroupStatistics";
 import { LightTooltip, SvgPath } from "../common";
 import { groupListStyles } from "./groupListStyles";
 
 
 interface IProps extends WithStyles<typeof groupListStyles>{
-  entry: KdbxItemWrapper
+  entryUuid: KdbxUuid
   nestLevel: number
   isContextMenuDisabled?: boolean
 }
 
-const GroupEntry: FC<IProps> = ({classes, entry, nestLevel, isContextMenuDisabled}) => {
+const GroupEntry: FC<IProps> = ({classes, entryUuid, nestLevel, isContextMenuDisabled}) => {
 
-  const groupStat = useRecoilValue(groupStatiscicAtom(entry.uuid.id));
-  const setSelection = useSetRecoilState(selectedGroupSelector);
+  const groupStat = new GroupStatistics(); //useRecoilValue(groupStatiscicAtom(entry.uuid.id));
+  const entry = useRecoilValue(itemStateAtom(entryUuid.id));
+  const setSelection = useSetRecoilState(selectItemSelector);
   const setContextMenu = useSetRecoilState(groupContextMenuAtom);
-  const setEntryState = useSetRecoilState(editSelectedItem);
-  const getDropped = useRecoilCallback(({snapshot}) => (uuid: string) =>{
-    return snapshot.getLoadable(keeStateAtom).valueMaybe()?.find(i => i.uuid.equals(uuid))
+  const setTreeState = useSetRecoilState(treeStateUpdateSelector);
+  const getDropped = useRecoilCallback(({snapshot}) => (uuid: string) => {
+    return snapshot.getLoadable(itemStateAtom(uuid)).valueMaybe()
   })
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -36,7 +42,7 @@ const GroupEntry: FC<IProps> = ({classes, entry, nestLevel, isContextMenuDisable
     event.dataTransfer.clearData();
     const droppedItem = getDropped(entryId);
     if (droppedItem)
-      setEntryState(KeeFileManager.moveItem(droppedItem, entry));
+      setTreeState(droppedItem.moveItem(entryUuid));
   }
 
   const showTotalEntries = () => {
@@ -70,6 +76,7 @@ const GroupEntry: FC<IProps> = ({classes, entry, nestLevel, isContextMenuDisable
 
 
   console.log(`${entry.title} being refreshed: ${entry.groupSortOrder}`);
+  console.log(entry);
 
   return (
     <LightTooltip title = { entry.getFieldUnprotected('Notes') }>

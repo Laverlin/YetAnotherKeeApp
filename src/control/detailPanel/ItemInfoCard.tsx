@@ -9,9 +9,8 @@ import {
   WithStyles
 } from '@material-ui/core';
 import { ByteUtils } from 'kdbxweb';
-import { SystemIcon } from '../../entity';
+import { KdbxItemState, SystemIcon } from '../../entity';
 import { SvgPath } from '../common';
-import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
 
 const styles = () =>  createStyles({
 
@@ -28,7 +27,7 @@ const styles = () =>  createStyles({
 });
 
 interface IProps extends WithStyles<typeof styles> {
-  entry: KdbxItemWrapper
+  entry: KdbxItemState
 }
 
 const ItemInfoCard: FC<IProps> = ({classes, entry}) => {

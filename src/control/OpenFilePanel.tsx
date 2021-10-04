@@ -1,5 +1,5 @@
-import React, { useContext, useReducer, useState } from "react";
-import {useSetRecoilState, useRecoilCallback} from 'recoil'
+import React, { useReducer, useState } from "react";
+import {useSetRecoilState} from 'recoil'
 import { RouteComponentProps, withRouter } from "react-router-dom";
 import { createStyles, WithStyles, withStyles, Theme } from "@material-ui/core/styles";
 import {
@@ -18,11 +18,7 @@ import path from "path";
 import { SvgPath } from "./common/SvgPath";
 import { ProtectedValue } from "kdbxweb";
 import { Setting, UserSetting } from "../entity/SettingStorage";
-import { KeeFileManager } from "../entity/model/KeeFileManager";
-import { groupStatiscicAtom, keeStateAtom } from "../entity/state/Atom";
-import { KeeData, KeeDataContext } from "../entity";
-import { GroupStatistics } from "../entity/model/GroupStatistics";
-
+import { currentContext, treeStateAtom } from "../entity";
 
 const styles = (theme: Theme) =>  createStyles({
   form: {
@@ -96,9 +92,8 @@ const userSetting: UserSetting = Setting.load(UserSetting);
 interface IProps extends WithStyles<typeof styles>, RouteComponentProps {}
 
 const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
-  const setEntries = useSetRecoilState(keeStateAtom);
-  const setStats = useRecoilCallback(({set}) => (value: GroupStatistics)=> {set(groupStatiscicAtom(value.groupUuid.id), value)})
- // const setStats = (id:string) => useSetRecoilState(groupStats(id));
+  const setTree = useSetRecoilState(treeStateAtom);
+
   const [isShowPassword, toggleShowPassword] = useState(false);
   const [password, setPassword] = useState('');
   const [selectedFileName, setFileName] = useState<string | undefined>(undefined);
@@ -146,13 +141,9 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
   const handleEnterPassword = async () => {
     if (selectedFileName) {
       try {
-        const [entries, stats] = await KeeFileManager.LoadFile(selectedFileName, ProtectedValue.fromString(password));
-        setEntries(entries);
-        for(let stat of stats){
-          setStats(stat);
-        }
+        //const [entries, stats] = await KeeFileManager.LoadFile(selectedFileName, ProtectedValue.fromString(password));
+        setTree(await currentContext.LoadContextFromFile(selectedFileName, ProtectedValue.fromString(password)));
         updateRecentFiles(selectedFileName);
-        
 
         history.push("/app");
       }

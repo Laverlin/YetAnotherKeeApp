@@ -1,15 +1,12 @@
 import React from 'react';
 import { RecoilRoot } from 'recoil';
 import { render } from 'react-dom';
-import { KeeDataContext } from './entity/Context';
-import KeeData from './entity/KeeData';
 
 import {
   HashRouter as Router,
   Switch,
   Route
 } from "react-router-dom";
-import SelectDb from './control/SelectDb';
 import MainFrame from './control/MainFrame';
 import MainLayout from './control/MainLayout';
 import { ThemeProvider } from '@material-ui/core';
@@ -19,13 +16,10 @@ import GlobalObserver from './entity/state/GlobalObserver';
 import OpenFilePanel  from './control/OpenFilePanel';
 
 
-const keeData = new KeeData();
-
 render(
   <RecoilRoot>
-  <GlobalObserver />
-  <React.StrictMode>
-    <KeeDataContext.Provider value = {keeData}>
+   <GlobalObserver />
+   <React.StrictMode>
       <ThemeProvider theme = {appTheme}>
         <Router>
           <ErrorBoundary>
@@ -42,8 +36,7 @@ render(
           </ErrorBoundary>
         </Router>
       </ThemeProvider>
-    </KeeDataContext.Provider>
-  </React.StrictMode>
+    </React.StrictMode>
   </RecoilRoot>,
   document.getElementById('root')
 );

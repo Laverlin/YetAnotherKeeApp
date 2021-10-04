@@ -2,7 +2,7 @@ import { Snackbar } from "@material-ui/core"
 import { Alert } from "@material-ui/lab"
 import React, { FC } from "react"
 import { useRecoilState } from "recoil";
-import { notificationAtom } from "../../entity/state/PanelStateAtoms";
+import { notificationAtom } from "../../entity";
 
 export const NotificationPanel: FC = () => {
 

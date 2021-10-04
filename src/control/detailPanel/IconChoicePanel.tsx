@@ -1,17 +1,13 @@
 import fs from 'fs';
 import * as React from 'react';
 import { createStyles, GridList, GridListTile, IconButton, ListSubheader, Popover, Theme, Tooltip, Typography, WithStyles, withStyles } from '@material-ui/core';
-import { DefaultKeeIcon, SystemIcon } from '../../entity';
 import { SvgPath, scrollBar } from '../common';
 import clsx from 'clsx';
 import { KdbxCustomIcon, KdbxUuid } from 'kdbxweb';
 import { remote } from 'electron';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { editSelectedItem } from '../../entity/state/Atom';
-import { KdbxItemWrapper } from '../../entity/model/KdbxItemWrapper';
-import { KeeFileManager } from '../../entity/model/KeeFileManager';
+import { DefaultKeeIcon, SystemIcon, closePanel, iconChoisePanelAtom, KdbxItemState, itemStateAtom, currentContext  } from '../../entity';
 import { useReducer } from 'react';
-import { closePanel, iconChoisePanelAtom } from '../../entity/state/PanelStateAtoms';
 
 const styles = (theme: Theme) =>  createStyles({
   root: {
@@ -42,12 +38,12 @@ const styles = (theme: Theme) =>  createStyles({
 });
 
 interface IProps  extends WithStyles<typeof styles> {
-  entry: KdbxItemWrapper
+  entry: KdbxItemState
 }
 
 const IconChoicePanel: React.FC<IProps> = ({classes, entry}) => {
 
-  const setEntryState = useSetRecoilState(editSelectedItem);
+  const setEntryState = useSetRecoilState(itemStateAtom(entry.uuid.id));
   const [panelState, setPanelState] = useRecoilState(iconChoisePanelAtom);
 
   const [_, forceUpdate] = useReducer(x => x + 1, 0);
@@ -56,11 +52,11 @@ const IconChoicePanel: React.FC<IProps> = ({classes, entry}) => {
     if (isPredefinedIcon) {
       const defaultIconId = Object.keys(DefaultKeeIcon).findIndex(key => key === iconId);
       if (defaultIconId > -1) {
-        setEntryState(entry.applyChanges(entry => entry.defaultIconId = defaultIconId))
+        setEntryState(entry.setDefaultIconId(defaultIconId))
       }
     }
     else {
-      setEntryState(entry.applyChanges(entry => entry.customIconUuid = new KdbxUuid(iconId)))
+      setEntryState(entry.setCustomIconUuid(new KdbxUuid(iconId)));
     }
     setPanelState(closePanel);
   }
@@ -73,12 +69,12 @@ const IconChoicePanel: React.FC<IProps> = ({classes, entry}) => {
     const data = fs.readFileSync(files[0]);
     let icon: KdbxCustomIcon = {data: new Uint8Array(data).buffer}
     const uuid = KdbxUuid.random();
-    KeeFileManager.database.meta.customIcons.set(uuid.id, icon);
+    currentContext.database.meta.customIcons.set(uuid.id, icon);
     forceUpdate();
   }
 
   const handleRemoveUnused = () => {
-    KeeFileManager.removeUnusedIcons();
+    currentContext.removeUnusedIcons();
     forceUpdate();
   }
 
@@ -121,7 +117,7 @@ const IconChoicePanel: React.FC<IProps> = ({classes, entry}) => {
               </Typography>
             </ListSubheader>
           </GridListTile>
-          {KeeFileManager.allCustomIcons.map(icon =>
+          {currentContext.allCustomIcons.map(icon =>
             <GridListTile key = {icon.iconId}>
               <IconButton size='medium' onClick = {() => handleIconChange(false, icon.iconId)}>
                 <img

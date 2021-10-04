@@ -1,4 +1,4 @@
-import React from "react";
+import React, { FC } from "react";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import { ProtectedValue } from "kdbxweb";
 import { DefaultKeeIcon, SystemIcon } from "../../entity/GlobalObject";
@@ -32,11 +32,22 @@ import IconChoicePanel from "./IconChoicePanel";
 import ColorChoicePanel from "./ColorChoicePanel";
 import CustomPropertyPanel from "./CustomPropertyPanel";
 import PasswordGeneratorPanel from "./PasswordGeneratorPanel";
-import { editSelectedItem, tagSelector } from "../../entity/state/Atom";
+import {
+  tagSelector,
+  colorChoisePanelAtom,
+  customPropertyPanelAtom,
+  historyAtom,
+  iconChoisePanelAtom,
+  openPanel,
+  itemStateAtom,
+  KdbxEntryStateReadOnly,
+  selectItemSelector,
+  currentContext,
+} from "../../entity";
 import PropertyInput from "./PropertyInput";
 import { CustomPropertyMenu } from "./CustomPropertyMenu";
-import { colorChoisePanelAtom, customPropertyPanelAtom, historyAtom, iconChoisePanelAtom, openPanel } from "../../entity/state/PanelStateAtoms";
-import { KdbxEntryWrapperReadOnly } from "../../entity/model/KdbxItemWrapper";
+
+
 
 const styles = (theme: Theme) =>  createStyles({
 
@@ -131,31 +142,37 @@ class FieldInfo {
 
 interface IProps extends WithStyles<typeof styles> {}
 
-const DetailPanel: React.FC<IProps> = ({classes}) => {
+const DetailPanel: FC<IProps> = ({classes}) => {
 
-  const [entry, setEntryState] = useRecoilState(editSelectedItem)
+  const entry = useRecoilValue(selectItemSelector);
+  const entryUuid = entry ? entry.uuid.id : currentContext.allItemsGroupUuid.id;
+  const setEntryState = useSetRecoilState(itemStateAtom(entryUuid));
+  const historyState = useRecoilValue(historyAtom(entryUuid));
   const setCustomPropPanel = useSetRecoilState(customPropertyPanelAtom);
   const setIconPanel = useSetRecoilState(iconChoisePanelAtom);
   const setColorPanel = useSetRecoilState(colorChoisePanelAtom);
   const allTags = useRecoilValue(tagSelector);
-  const historyState = useRecoilValue(historyAtom(entry?.uuid.id || ''));
 
-  if (!entry) {
+
+  if (!entry || entry.isAllItemsGroup) {
     return (<Typography variant='h2' className = {classes.emptySplash}>Select Item to View</Typography>);
   }
 
+
+
   console.log(`detail ${entry.title} rendering`);
+  console.log(entry);
 
   const handleTitleChange = (inputValue: string) => {
-    setEntryState(entry.applyChanges(entry => entry.title = inputValue));
+    setEntryState(entry.setTitle(inputValue));
   }
 
   const handleTagsChange = (values: (string[] | string)[]) => {
-    setEntryState(entry.applyChanges(entry => entry.tags = (values as string[])));
+    setEntryState(entry.setTags(values as string[]));
   }
 
   const handleDateChange = (date: MaterialUiPickersDate) => {
-    setEntryState(entry.applyChanges(entry => entry.expiryTime = date || undefined))
+    setEntryState(entry.setExpiryTime(date || undefined));
   }
 
   const fieldInfos = new Map<string, FieldInfo>([
@@ -167,7 +184,7 @@ const DetailPanel: React.FC<IProps> = ({classes}) => {
     ]);
 
   const entryView = historyState.isInHistory
-    ? new KdbxEntryWrapperReadOnly(entry.history[historyState.historyIndex])
+    ? new KdbxEntryStateReadOnly(entry.history[historyState.historyIndex])
     : entry
 
   return (
