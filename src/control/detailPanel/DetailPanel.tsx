@@ -144,10 +144,9 @@ interface IProps extends WithStyles<typeof styles> {}
 
 const DetailPanel: FC<IProps> = ({classes}) => {
 
-  const entry = useRecoilValue(selectItemSelector);
-  const entryUuid = entry ? entry.uuid.id : currentContext.allItemsGroupUuid.id;
-  const setEntryState = useSetRecoilState(itemStateAtom(entryUuid));
-  const historyState = useRecoilValue(historyAtom(entryUuid));
+  const entryUuid = useRecoilValue(selectItemSelector) || currentContext.allItemsGroupUuid;
+  const [entry, setEntryState] = useRecoilState(itemStateAtom(entryUuid.id));
+  const historyState = useRecoilValue(historyAtom(entryUuid.id));
   const setCustomPropPanel = useSetRecoilState(customPropertyPanelAtom);
   const setIconPanel = useSetRecoilState(iconChoisePanelAtom);
   const setColorPanel = useSetRecoilState(colorChoisePanelAtom);

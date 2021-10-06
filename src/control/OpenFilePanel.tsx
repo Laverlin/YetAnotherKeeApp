@@ -1,5 +1,5 @@
 import React, { useReducer, useState } from "react";
-import {useSetRecoilState} from 'recoil'
+import {useSetRecoilState, useRecoilCallback} from 'recoil'
 import { RouteComponentProps, withRouter } from "react-router-dom";
 import { createStyles, WithStyles, withStyles, Theme } from "@material-ui/core/styles";
 import {
@@ -18,7 +18,7 @@ import path from "path";
 import { SvgPath } from "./common/SvgPath";
 import { ProtectedValue } from "kdbxweb";
 import { Setting, UserSetting } from "../entity/SettingStorage";
-import { currentContext, treeStateAtom } from "../entity";
+import { colorFilterAtom, currentContext, isDbSavedSelector, searchFilterAtom, selectItemSelector, tagFilterAtom, treeStateAtom } from "../entity";
 
 const styles = (theme: Theme) =>  createStyles({
   form: {
@@ -98,6 +98,13 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
   const [password, setPassword] = useState('');
   const [selectedFileName, setFileName] = useState<string | undefined>(undefined);
   const [error, setError] = useState('');
+  const clearState = useRecoilCallback(({set}) => () => {
+    set(colorFilterAtom, {color:''});
+    set(tagFilterAtom, []);
+    set(searchFilterAtom, '');
+    set(selectItemSelector, currentContext.allItemsGroupUuid);
+    set(isDbSavedSelector, true);
+  })
 
   ///TMP!!
   const [_, forceUpdate] = useReducer(x => x + 1, 0);
@@ -141,7 +148,7 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
   const handleEnterPassword = async () => {
     if (selectedFileName) {
       try {
-        //const [entries, stats] = await KeeFileManager.LoadFile(selectedFileName, ProtectedValue.fromString(password));
+        clearState();
         setTree(await currentContext.LoadContextFromFile(selectedFileName, ProtectedValue.fromString(password)));
         updateRecentFiles(selectedFileName);
 

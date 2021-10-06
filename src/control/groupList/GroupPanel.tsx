@@ -15,6 +15,8 @@ const GroupPanel: FC<IProps> = ({classes}) => {
 
   const entries = useRecoilValue(treeViewSelector);
 
+  console.warn('render group panel')
+
   if (entries.length === 0)
     history.back();
 
@@ -57,7 +59,7 @@ const GroupPanel: FC<IProps> = ({classes}) => {
         {renderChildGroups(currentContext.defaultGroupUuid)}
       </div>
 
-      { currentContext.recycleBinUuid &&
+      { currentContext.recycleBinUuid && !currentContext.recycleBinUuid.empty &&
         <div className = {classes.rbList}>
             <GroupEntry
               entryUuid = {currentContext.recycleBinUuid}

@@ -232,7 +232,20 @@ export class KdbxItemState {
     return item;
   }
 
-  moveItem(parentGroupUuid: KdbxUuid): ITreeStateChange {
+  isMovingAllowed(parentGroupUuid: KdbxUuid) {
+    let uuid = parentGroupUuid as KdbxUuid | undefined;
+    while (uuid) {
+      if (uuid.equals(this.uuid))
+        return false
+      uuid = currentContext.getKdbxItem(uuid).parentGroup?.uuid
+    }
+    return true;
+  }
+
+  moveItem(parentGroupUuid: KdbxUuid): ITreeStateChange | undefined {
+    if (!this.isMovingAllowed(parentGroupUuid))
+      return undefined
+
     const kdbxGroup = currentContext.getKdbxItem(parentGroupUuid);
     assert(kdbxGroup instanceof KdbxGroup);
 
@@ -246,7 +259,7 @@ export class KdbxItemState {
     }
   }
 
-  deleteItem(): ITreeStateChange {
+  deleteItem(): ITreeStateChange | undefined {
     assert(currentContext.recycleBinUuid)
     return this.moveItem(currentContext.recycleBinUuid);
   }

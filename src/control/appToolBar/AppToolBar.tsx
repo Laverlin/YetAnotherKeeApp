@@ -10,7 +10,7 @@ import { SvgPath } from "../common";
 import SearchBox from "./SearchBox";
 import SortMenu from "./SortMenu";
 import SettingPanel from "./SettingPanel";
-import { useSetRecoilState, useRecoilValue } from "recoil";
+import { useSetRecoilState, useRecoilState} from "recoil";
 
 
 
@@ -106,7 +106,7 @@ interface IProps extends WithStyles<typeof styles>, RouteComponentProps  {}
 const AppToolBar: FC<IProps> = ({classes}) => {
 
   const setSortMenu = useSetRecoilState(toolSortMenuAtom);
-  const isDbSaved = useRecoilValue(isDbSavedSelector);
+  const [isDbSaved, setDbSaved] = useRecoilState(isDbSavedSelector);
 
   const [isMaximized, setIsMaximized] = useState(electron.remote.getCurrentWindow().isMaximized());
   const [isSettingPanelOpen, setSettingPanel] = useState(false);
@@ -123,13 +123,12 @@ const AppToolBar: FC<IProps> = ({classes}) => {
   const handleMinimizeWindow = () => electron.remote.getCurrentWindow().minimize();
 
   const handleBackClick = () => {
-    //this.setState({isDbChanged: false});
     history.back();
   }
 
   const handleSave = () => {
     currentContext.SaveFile();
-    //setDbSaved(true);
+    setDbSaved(true);
   }
 
   const dbName = path.basename(currentContext.filePath);

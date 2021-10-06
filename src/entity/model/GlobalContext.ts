@@ -1,6 +1,8 @@
 import assert from 'assert';
+import argon2 from 'argon2';
 import fs from 'fs';
-import { Credentials, Kdbx, KdbxEntry, KdbxGroup, KdbxUuid, ProtectedValue} from "kdbxweb";
+import { Credentials, CryptoEngine, Kdbx, KdbxEntry, KdbxGroup, KdbxUuid, ProtectedValue} from "kdbxweb";
+import { Argon2Type, Argon2Version } from 'kdbxweb/dist/types/crypto/crypto-engine';
 import { KdbxUuidFactory } from '../Extention';
 import { KdbxItemState } from './KdbxItemState';
 
@@ -22,11 +24,16 @@ export class GlobalContext {
   #defaultGroupUuid: KdbxUuid | undefined
   #recycleBinUuid: KdbxUuid | undefined
 
+  constructor() {
+    CryptoEngine.setArgon2Impl((...args) => this._argon2(...args));
+  }
+
   public allItemsGroupUuid = KdbxUuidFactory.fromHexString('0000000000000000000000000000AAAA');
 
   public async LoadContextFromFile(filePath: string, password: ProtectedValue) {
     const data = await fs.promises.readFile(filePath);
     const credentials = new Credentials(password, null);
+    this.#allItems.clear();
     this.#database = await Kdbx.load(new Uint8Array(data).buffer, credentials);
     for(let item of this.#database.getDefaultGroup().allGroupsAndEntries())
       this.#allItems.set(item.uuid.id, item);
@@ -108,6 +115,29 @@ export class GlobalContext {
       item: new KdbxItemState(newItem.uuid),
       treeChanges: {itemUuid: newItem.uuid, parentUuid: parentGroupUuid} as ITreeItem
     }
+  }
+
+  private async _argon2 (
+    password: ArrayBuffer,
+    salt: ArrayBuffer,
+    memory: number,
+    iterations: number,
+    length: number,
+    parallelism: number,
+    type: Argon2Type,
+    version: Argon2Version
+  ): Promise<ArrayBuffer> {
+      const hash = await argon2.hash(Buffer.from(password), {
+          salt: Buffer.from(salt),
+          memoryCost: memory,
+          timeCost: iterations,
+          parallelism: parallelism,
+          type: type,
+          version: version,
+          hashLength: length,
+          raw: true
+      });
+      return new Uint8Array(hash.buffer);
   }
 }
 

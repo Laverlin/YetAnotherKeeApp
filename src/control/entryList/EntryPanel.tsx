@@ -34,6 +34,8 @@ const EntryPanel: FC<IProps> = ({classes}) => {
 
   const filteredEntries = useRecoilValue(filteredEntriesSelector);
 
+  console.warn('render entry panel')
+
   if (filteredEntries.length === 0) {
     return (
       <Typography variant='h2' className = {classes.emptySplash}>

@@ -23,7 +23,7 @@ export const GroupContextMenu: FC = () => {
     setContextMenuState(closeItemContextMenu);
     const newItem = currentContext.createItem(contextMenu.entry.uuid, isGroup, 'New Group');
     setTreeState(newItem);
-    setSelectedItem(newItem.item);
+    setSelectedItem(newItem.item.uuid);
   }
 
   const changeGroupOrder = (isUp: boolean) => {

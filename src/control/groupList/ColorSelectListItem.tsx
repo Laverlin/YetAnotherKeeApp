@@ -12,6 +12,7 @@ import {colorFilterAtom, DefaultColors, SystemIcon } from "../../entity";
 import {groupListStyles} from "./groupListStyles"
 import {SvgPath} from "../common";
 import { useRecoilState } from "recoil";
+import { stringToBytes } from "kdbxweb/dist/types/utils/byte-utils";
 
 interface IProps extends WithStyles<typeof groupListStyles> {}
 
@@ -36,7 +37,7 @@ const ColorSelectListItem: FC<IProps> = ({classes}) => {
     onMouseLeave = {() => setShowColorSelection(false)}
   >
     <ListItemIcon className = {classes.icon}>
-      <SvgPath path = {SystemIcon.colorFilled} style = {{color: colorFilter}} />
+      <SvgPath path = {SystemIcon.colorFilled} style = {{color: colorFilter.color}} />
     </ListItemIcon>
     <ListItemText
       classes = {{primary:classes.listItemText, secondary:classes.listItemSubText}}
@@ -47,9 +48,9 @@ const ColorSelectListItem: FC<IProps> = ({classes}) => {
 
     <div className = {classes.colorSelector} hidden = {!isShowColorSelection} >
       <IconButton
-        style= {{color: colorFilter }}
+        style= {{color: colorFilter.color }}
         className = {clsx(classes.icon, classes.colorIcon)}
-        onClick = {() => setColorFilter('')}
+        onClick = {() => setColorFilter({color: ''})}
       >
         <SvgPath path = {SystemIcon.colorFilled} />
       </IconButton>
@@ -57,7 +58,7 @@ const ColorSelectListItem: FC<IProps> = ({classes}) => {
         <IconButton
           key = {color}
           className = {classes.colorIcon}
-          onClick = {() => setColorFilter(color)}
+          onClick = {() => setColorFilter({color: color})}
         >
           <SvgPath
             path = {SystemIcon.colorEmpty}

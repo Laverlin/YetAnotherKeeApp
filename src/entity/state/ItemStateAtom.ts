@@ -1,7 +1,8 @@
-import { KdbxGroup, KdbxUuid } from 'kdbxweb'
-import { atom, atomFamily, selector, DefaultValue } from 'recoil'
+import { KdbxEntry, KdbxGroup, KdbxUuid } from 'kdbxweb'
+import { atom, atomFamily, selector, selectorFamily, DefaultValue } from 'recoil'
 import { ITreeItem } from '..'
 import { currentContext, ITreeStateChange } from '../model/GlobalContext'
+import { GroupStatistic } from '../model/GroupStatistic'
 import { AllItemsGroupState, KdbxItemState } from '../model/KdbxItemState'
 
 
@@ -39,57 +40,102 @@ export const itemStateAtom = atomFamily<KdbxItemState, string>({
     : new KdbxItemState(new KdbxUuid(uuid))
 })
 
-export class Selection {
-  selectedEntry: KdbxItemState | undefined;
-  selectedGroup: KdbxItemState | undefined;
-  public constructor(init?:Partial<Selection>) {
-    Object.assign(this, init);
-  }
-}
-export const selectAtom = atom<Selection>({
-  key: 'global/selectAtom',
-  default: new Selection({selectedGroup: new AllItemsGroupState(true)})
+export const selectGroupAtom = atom<KdbxUuid | undefined>({
+  key: 'global/selectGroupAtom',
+  default: currentContext.allItemsGroupUuid
 })
-export const selectItemSelector = selector<KdbxItemState | undefined>({
+
+export const selectEntryAtom = atom<KdbxUuid | undefined>({
+  key: 'global/selectEntryAtom',
+  default: undefined
+})
+
+export const selectItemSelector = selector<KdbxUuid | undefined>({
   key: 'global/selectSelector',
-  get: ({get}) => { return get(selectAtom).selectedEntry || get(selectAtom).selectedGroup },
-  set: ({set}, payLoad) => {
+  get: ({get}) => { return get(selectEntryAtom) || get(selectGroupAtom) },
+  set: ({get, set}, payLoad) => {
     if (!payLoad || payLoad instanceof DefaultValue)
       return;
 
-    const newSelected = payLoad.setSelected(true);
-    let prevSelection = new Selection();
-    set(selectAtom, curSelection => {
-      prevSelection = curSelection;
-      return newSelected.isGroup && !newSelected.isRecycled
-        ? {selectedEntry: undefined, selectedGroup: newSelected}
-        : {...curSelection, selectedEntry: newSelected}
-    })
+    const newSelected = get(itemStateAtom(payLoad.id));
+    let prevEntryId: KdbxUuid | undefined;
+    let prevGroupId: KdbxUuid | undefined;
+    if (newSelected.isGroup && !newSelected.isRecycled) {
+      set(selectEntryAtom, cur => {prevEntryId = cur; return undefined});
+      set(selectGroupAtom, cur => {prevGroupId = cur; return payLoad});
+      if (prevGroupId)
+        set(itemStateAtom(prevGroupId.id), cur => cur.setSelected(false));
+      if (prevEntryId)
+        set(itemStateAtom(prevEntryId.id), cur => cur.setSelected(false));
+    }
+    else {
+      set(selectEntryAtom, cur => {prevEntryId = cur; return payLoad});
+      if (prevEntryId)
+        set(itemStateAtom(prevEntryId.id), cur => cur.setSelected(false));
+    }
 
-    if (prevSelection.selectedEntry)
-      set(itemStateAtom(prevSelection.selectedEntry.uuid.id), cur => cur.setSelected(false));
-
-    if (newSelected.isGroup && prevSelection.selectedGroup && !newSelected.isRecycled)
-      set(itemStateAtom(prevSelection.selectedGroup.uuid.id), cur => cur.setSelected(false));
-
-    set(itemStateAtom(newSelected.uuid.id), newSelected);
+    set(itemStateAtom(newSelected.uuid.id), newSelected.setSelected(true));
   }
 })
 
 
 export const isDbSavedSelector = selector<boolean>({
   key:'global/isDbSaved',
-  get: ({get}) => { return !!get(treeStateAtom).find(e => get(itemStateAtom(e.itemUuid.id)).isChanged) }
-  /*
-  set: ({get, set}) => set(itemStateAtom(get()), state => {
-    let newState = state
-    for(let item of state)
-      newState = updateItem(newState, item.applyChanges(i => i.isChanged = false))
-    return newState;
-  })
-  */
+  get: ({get}) => { return !!get(treeStateAtom).find(e => get(itemStateAtom(e.itemUuid.id)).isChanged) },
+
+  set: ({get, set}) => {
+    const items = get(treeStateAtom)
+      .map(i => get(itemStateAtom(i.itemUuid.id)))
+      .filter(i => i.isChanged)
+    for(let item of items)
+      set(itemStateAtom(item.uuid.id), item.resetChanged());
+  }
 })
 
+
+export const groupStatSelector = selectorFamily<GroupStatistic, string>({
+  key: 'stat/groupStatSelector',
+  get: (uuid) => ({get}) => {
+
+    const reducerGroup = (acc: GroupStatistic, treeItem: ITreeItem) => {
+      const item = currentContext.getKdbxItem(treeItem.itemUuid);
+      if (filter(item)) {
+        acc.totalEntries++;
+        acc.lastChanged = acc.toDate(Math.max(acc.lastChanged?.valueOf() || 0, item.times.lastModTime?.valueOf() || 0))
+        acc.closeExpired = item.times.expires && item.times.expiryTime?.valueOf() || 0 > Date.now()
+          ? acc.toDate(
+            (!acc.closeExpired)
+              ? item.times.expiryTime?.valueOf() || 0
+              : Math.min(acc.closeExpired?.valueOf() || 0, item.times.expiryTime?.valueOf() || 0)
+            )
+          : acc.closeExpired
+      }
+      return acc;
+    }
+
+    const filter = (entry: KdbxEntry | KdbxGroup) => {
+      return entry instanceof KdbxEntry &&
+        (entry.parentGroup?.uuid.equals(uuid) ||
+        (currentContext.allItemsGroupUuid.equals(uuid)) ||
+        (currentContext.recycleBinUuid?.equals(uuid) && isRecycled(entry))
+        )
+    }
+
+    const isRecycled = (entry: KdbxEntry | KdbxGroup) => {
+      if (!currentContext.recycleBinUuid)
+        return false;
+      let group: KdbxEntry | KdbxGroup | undefined = entry;
+      do {
+        group = group?.parentGroup
+        if (group?.uuid.equals(currentContext.recycleBinUuid))
+          return true;
+      } while(group)
+      return false;
+    }
+
+    return get(treeStateAtom).reduce(reducerGroup, new GroupStatistic())
+  }
+})
 
 
 

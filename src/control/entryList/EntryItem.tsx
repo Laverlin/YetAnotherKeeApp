@@ -9,7 +9,6 @@ import {
   itemContextMenuAtom,
   notificationAtom,
   openItemContextMenu,
-  KdbxItemState,
   itemStateAtom,
   selectItemSelector
 } from '../../entity';
@@ -145,7 +144,6 @@ const styles = (theme: Theme) =>  createStyles({
 });
 
 interface IProps extends WithStyles<typeof styles>{
-  //entry: KdbxItemState
   entryUuid: KdbxUuid
 }
 
@@ -174,7 +172,7 @@ const EntryItem: FC<IProps> = ({classes, entryUuid}) => {
       <div
         draggable
         onDragStart = {e => e.dataTransfer.setData('text', entry.uuid.id)}
-        onClick = {() => setSelection(entry)}
+        onClick = {() => setSelection(entry.uuid)}
         className = {
           clsx(classes.listItem, entry.isSelected && classes.listItemSelected)
         }

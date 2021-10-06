@@ -32,7 +32,7 @@ const SortMenu: FC<IProps> = ({classes}) => {
   const [sortMenu, setSortMenu] = useRecoilState(toolSortMenuAtom);
 
   const handleSort = (sortField: ISortMenuItem) => {
-    setSortField(sortField);
+    setSortField({...sortField});
     setSortMenu(closePanel);
   }
 

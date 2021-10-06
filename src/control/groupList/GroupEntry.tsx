@@ -7,13 +7,13 @@ import { appTheme } from "../../appTheme";
 import {
   DefaultKeeIcon,
   groupContextMenuAtom,
+  groupStatSelector,
   itemStateAtom,
   openItemContextMenu,
   selectItemSelector,
   SystemIcon,
   treeStateUpdateSelector,
 } from "../../entity";
-import { GroupStatistics } from "../../entity/model/GroupStatistics";
 import { LightTooltip, SvgPath } from "../common";
 import { groupListStyles } from "./groupListStyles";
 
@@ -26,7 +26,6 @@ interface IProps extends WithStyles<typeof groupListStyles>{
 
 const GroupEntry: FC<IProps> = ({classes, entryUuid, nestLevel, isContextMenuDisabled}) => {
 
-  const groupStat = new GroupStatistics(); //useRecoilValue(groupStatiscicAtom(entry.uuid.id));
   const entry = useRecoilValue(itemStateAtom(entryUuid.id));
   const setSelection = useSetRecoilState(selectItemSelector);
   const setContextMenu = useSetRecoilState(groupContextMenuAtom);
@@ -44,6 +43,8 @@ const GroupEntry: FC<IProps> = ({classes, entryUuid, nestLevel, isContextMenuDis
     if (droppedItem)
       setTreeState(droppedItem.moveItem(entryUuid));
   }
+
+  const groupStat = useRecoilValue(groupStatSelector(entryUuid.id));
 
   const showTotalEntries = () => {
     return (
@@ -66,6 +67,8 @@ const GroupEntry: FC<IProps> = ({classes, entryUuid, nestLevel, isContextMenuDis
   }
 
   const showLastModified = () => {
+    if (!groupStat.lastChanged)
+      return;
     return (
       <>
         <SvgPath path = {SystemIcon.save} className = {classes.smallIcon} />
@@ -74,9 +77,10 @@ const GroupEntry: FC<IProps> = ({classes, entryUuid, nestLevel, isContextMenuDis
     )
   }
 
-
-  console.log(`${entry.title} being refreshed: ${entry.groupSortOrder}`);
   console.log(entry);
+  console.log(`${entry.title} being refreshed: ${entry.groupSortOrder}`);
+
+  console.log(groupStat);
 
   return (
     <LightTooltip title = { entry.getFieldUnprotected('Notes') }>
@@ -99,7 +103,7 @@ const GroupEntry: FC<IProps> = ({classes, entryUuid, nestLevel, isContextMenuDis
         selected = {entry.isSelected}
         className = {classes.listItem}
         style = {{paddingLeft: appTheme.spacing(1) + appTheme.spacing(4 * nestLevel)}}
-        onClick = {() => setSelection(entry)}
+        onClick = {() => setSelection(entry.uuid)}
       >
 
           <ListItemIcon className = {classes.icon}>

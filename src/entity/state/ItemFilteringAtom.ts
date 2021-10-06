@@ -1,24 +1,36 @@
 import { KdbxUuid } from 'kdbxweb';
 import {atom, selector} from 'recoil'
 import {itemStateAtom, KdbxItemState, treeStateAtom} from '..'
-import { selectAtom, selectItemSelector } from './ItemStateAtom';
+import { currentContext } from '../model/GlobalContext';
+import { AllItemsGroupState } from '../model/KdbxItemState';
+import { selectGroupAtom } from './ItemStateAtom';
 
 export const entriesSelector = selector<KdbxItemState[]>({
   key: 'entriesSelector',
   get: ({get}) => {
-    const selectedGroup = get(selectAtom).selectedGroup
-    if (!selectedGroup)
+
+    console.error('recalc')
+
+    const groupUuid = get(selectGroupAtom)
+    if (!groupUuid)
       return [];
+
+    const selectedGroup = groupUuid.equals(currentContext.allItemsGroupUuid)
+      ? new AllItemsGroupState()
+      : get(itemStateAtom(groupUuid.id))//new KdbxItemState(groupUuid)
 
     const filter = (item: KdbxItemState) => {
       return ((!item.isGroup || selectedGroup.isRecycleBin) &&
-        (item.parentUuid?.equals(selectedGroup.uuid) || (!item.isRecycled && selectedGroup.isAllItemsGroup))
+        (item.parentUuid?.equals(selectedGroup.uuid) ||
+          (selectedGroup.isAllItemsGroup && !item.isRecycled) ||
+          (selectedGroup.isRecycleBin && item.isRecycled )
+        )
       )
     }
 
     return get(treeStateAtom)
-      .filter(i => filter(get(itemStateAtom(i.itemUuid.id))))
       .map(i => get(itemStateAtom(i.itemUuid.id)))
+      .filter(filter)
   }
 })
 
@@ -36,9 +48,9 @@ export const tagFilterAtom = atom<string[]>({
   default: []
 })
 
-export const colorFilterAtom = atom<string>({
+export const colorFilterAtom = atom<{color:string}>({
   key: 'group/colorFilterAtom',
-  default: ''
+  default: {color: ''}
 })
 
 export const searchFilterAtom = atom<string>({
@@ -83,13 +95,14 @@ export const sortEntriesAtom = atom<ISortMenuItem>({
 export const filteredEntriesSelector = selector<KdbxUuid[]>({
   key: 'filteredEntriesSelector',
   get: ({get}) => {
+    console.error('re sort')
     const colorFilter = get(colorFilterAtom);
     const tagFilter = get(tagFilterAtom);
     const searchFilter = get(searchFilterAtom);
     const sortField = get(sortEntriesAtom);
     let filtered = get(entriesSelector);
-    if (colorFilter)
-      filtered = filtered.filter(e => e.bgColor === colorFilter);
+    if (colorFilter.color)
+      filtered = filtered.filter(e => e.bgColor === colorFilter.color);
     if (tagFilter.length > 0)
       filtered = filtered.filter(e => e.tags.filter(t => tagFilter.includes(t)).length > 0)
     if (searchFilter)
