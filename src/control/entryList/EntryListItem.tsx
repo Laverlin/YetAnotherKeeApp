@@ -139,6 +139,16 @@ const styles = (theme: Theme) =>  createStyles({
 
   timeExpired: {
     color: theme.palette.secondary.main
+  },
+
+  changeMark: {
+    position:'absolute',
+    margin: '10px',
+    height: '10px',
+    width: '10px',
+    backgroundColor: '#f35b04',
+    borderRadius: '50%',
+    display: 'block',
   }
 
 });
@@ -176,6 +186,7 @@ const EntryListItem: FC<IProps> = ({classes, entryUuid}) => {
         }
       >
         <div style={{width:'8px', background: entry.bgColor }}/>
+        {entry.isChanged && <div className = {classes.changeMark} />}
         <div
           className = {clsx(classes.mainIconDiv,  entry.hasPassword && classes.copyCursor)}
           onDoubleClick = {() => entry.hasPassword && handleCopy('Password')}
@@ -185,6 +196,7 @@ const EntryListItem: FC<IProps> = ({classes, entryUuid}) => {
             : <SvgPath className = {classes.mainIconContent} path = {DefaultKeeIcon.get(entry.defaultIconId)} />
           }
         </div>
+
         <div className = {classes.itemContent}>
           <div className = {classes.itemContentRow}>
             <div className = {

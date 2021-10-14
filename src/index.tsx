@@ -12,7 +12,6 @@ import MainLayout from './control/MainLayout';
 import { ThemeProvider } from '@material-ui/core';
 import { appTheme } from './appTheme';
 import ErrorBoundary from './control/common/ErrorBoundary';
-import GlobalObserver from './entity/state/GlobalObserver';
 import OpenFilePanel  from './control/OpenFilePanel';
 
 

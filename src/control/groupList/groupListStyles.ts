@@ -111,4 +111,15 @@ export const groupListStyles = (theme: Theme) =>  createStyles({
     width: 250,
   },
 
+  changeMark: {
+    position:'absolute',
+    marginTop: '-20px',
+    marginLeft: '-5px',
+    height: '10px',
+    width: '10px',
+    backgroundColor: '#f35b04',
+    borderRadius: '50%',
+    display: 'block',
+  }
+
 });

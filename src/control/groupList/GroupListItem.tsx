@@ -101,6 +101,7 @@ const GroupListItem: FC<IProps> = ({classes, entryUuid, nestLevel, isContextMenu
           <SvgPath path = {entry.isAllItemsGroup ? SystemIcon.allItems : DefaultKeeIcon.get(entry.defaultIconId)} />
         </ListItemIcon>
 
+        {entry.isChanged && <div className = {classes.changeMark} />}
         <ListItemText
           draggable = {!entry.isDefaultGroup && !entry.isRecycleBin}
           onDragStart = {e => {

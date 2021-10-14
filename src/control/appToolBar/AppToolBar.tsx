@@ -104,7 +104,7 @@ const AppToolBar: FC<IProps> = ({classes}) => {
   // Global state
   //
   const setSortMenu = useSetRecoilState(toolSortMenuAtom);
-  const [isDbSaved, setDbSaved] = useRecoilState(isDbSavedSelector);
+  const [isDbChanged, setDbSaved] = useRecoilState(isDbSavedSelector);
   const location = useLocation();
 
   // local state
@@ -121,7 +121,33 @@ const AppToolBar: FC<IProps> = ({classes}) => {
       : electron.remote.getCurrentWindow().maximize();
   }
 
-  const handleCloseWindow = () => electron.remote.getCurrentWindow().close();
+  const handleCloseWindow = async () => {
+
+    let userChoice: number = 1;
+    if (isDbChanged) {
+      userChoice = electron.remote.dialog.showMessageBoxSync(
+        electron.remote.getCurrentWindow(),
+        { type: 'question',
+          buttons: ['Save', 'Ignore', 'Cancel'],
+          defaultId: 0,
+          cancelId: 2,
+          noLink: true,
+          title: '    Are you sure?',
+          message: 'There are unsaved items.',
+          detail: 'Would you like to "Save" them, "Ignore" and exit, or "Cancel" and continue to work with the app?'
+        }
+      );
+    }
+
+    switch(userChoice) {
+      case 0:
+        await handleSave();
+      case 1:
+        electron.remote.getCurrentWindow().close();
+      case 2:
+        return;
+    }
+  }
 
   const handleMinimizeWindow = () => electron.remote.getCurrentWindow().minimize();
 
@@ -129,8 +155,8 @@ const AppToolBar: FC<IProps> = ({classes}) => {
     history.back();
   }
 
-  const handleSave = () => {
-    currentContext().SaveContext();
+  const handleSave = async () => {
+    await currentContext().SaveContext();
     setDbSaved(true);
   }
 
@@ -146,12 +172,12 @@ const AppToolBar: FC<IProps> = ({classes}) => {
           <>
             <Typography className = {classes.dbName}> {`/// ${dbName()}`}</Typography>
             <div className = {classes.space15}>
-              {isDbSaved && <Typography variant='h5'>*</Typography>}
+              {isDbChanged && <Typography variant='h5'>*</Typography>}
             </div>
             <Tooltip title = {`Save ${dbName()}`}>
               <IconButton
                 color = "inherit"
-                className = {clsx(isDbSaved ? classes.button : classes.buttonDisabled)}
+                className = {clsx(isDbChanged ? classes.button : classes.buttonDisabled)}
                 onClick = {handleSave}
               >
                 <SvgPath className = {classes.icon20} path = {SystemIcon.save} />

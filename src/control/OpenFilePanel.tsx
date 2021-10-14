@@ -29,6 +29,10 @@ import {
   GlobalContext,
   setGlobalContext
 } from "../entity";
+import clsx from 'clsx';
+
+import loadStyles from "./common/spinner.scss";
+
 
 const styles = (theme: Theme) =>  createStyles({
   form: {
@@ -93,8 +97,11 @@ const styles = (theme: Theme) =>  createStyles({
     width:15,
     marginRight:'40px',
     marginLeft:'20px'
-  }
+  },
 
+  loader: {
+    marginLeft: '15px'
+  }
 });
 
 interface IProps extends WithStyles<typeof styles>, RouteComponentProps {}
@@ -114,7 +121,9 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
     set(searchFilterAtom, '');
     set(selectItemSelector, GlobalContext.allItemsGroupUuid);
     set(isDbSavedSelector, true);
-  })
+  });
+
+  const [isLoading, setLoading] = useState(false);
 
   ///TMP!!
   const [_, forceUpdate] = useReducer(x => x + 1, 0);
@@ -161,20 +170,22 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
 
     if (selectedFileName) {
       try {
+        setLoading(true);
         clearState();
         const gc = await GlobalContext.LoadContext(selectedFileName, ProtectedValue.fromString(password));
         setGlobalContext(gc);
         setItemIds(currentContext().allItemIds);
         updateRecentFiles(selectedFileName);
-
         history.push("/app");
       }
       catch (error) {
+
         const errorMsg = (error.code === 'InvalidKey')
           ? 'Wrong Password'
           : error.message ? error.message : error;
         setError(errorMsg);
       }
+      setLoading(false);
     }
   }
 
@@ -234,19 +245,24 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
                 )
               }}
             />
-            <IconButton
-              className = {classes.enterButton}
-              onClick = {handleEnterPassword}
-              disabled = {!selectedFileName}
-            >
-              <SvgPath className = {classes.icon50} path = {SystemIcon.enterKey} />
-            </IconButton>
+            {!isLoading
+              ? <IconButton
+                  className = {classes.enterButton}
+                  onClick = {handleEnterPassword}
+                  disabled = {!selectedFileName}
+                >
+                  <SvgPath className = {classes.icon50} path = {SystemIcon.enterKey} />
+                </IconButton>
+              : <div className = {
+                  clsx(loadStyles["spinner"], loadStyles["spinner-1"], classes.enterButton)}
+                />
+            }
           </div>
           <div className = {classes.selectedFile}>
             {selectedFileName &&
               <>
-              <SvgPath path = {SystemIcon.cone_right} className = {classes.selectedFileIcon} />
-              <Typography variant="caption">{selectedFileName}</Typography>
+                <SvgPath path = {SystemIcon.cone_right} className = {classes.selectedFileIcon} />
+                <Typography variant="caption">{selectedFileName}</Typography>
               </>
             }
           </div>
