@@ -35,11 +35,19 @@ interface IProps  extends WithStyles<typeof styles> {
 }
 
 const CustomPropertyPanel: React.FC<IProps> = ({classes, entry}) => {
-  const [customPropertyName, setCustomPropName] = useState('');
-  const [isProtected, toggleIsProtected] = useState(false);
+
+  // Global state
+  //
   const [panelState, setPanelState] = useRecoilState(customPropertyPanelAtom);
   const editEntry = useSetRecoilState(itemStateAtom(entry.uuid.id));
 
+  // Local state
+  //
+  const [customPropertyName, setCustomPropName] = useState('');
+  const [isProtected, toggleIsProtected] = useState(false);
+
+  // handlers
+  //
   const handleKeyPress = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter') {
       handleAddCustomProperty();

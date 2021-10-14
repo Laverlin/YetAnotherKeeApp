@@ -51,7 +51,7 @@ const SortMenu: FC<IProps> = ({classes}) => {
           {item.displayName}
           <ListItemIcon className = {classes.menuIcon}>
             { (sortField.id === item.id) &&
-              <SvgPath path = {SystemIcon.sortArrowAsc} style = {{marginLeft: 'auto'}}/>
+              <SvgPath path = {SystemIcon.sortArrowAsc} className = {classes.menuIcon}/>
             }
           </ListItemIcon>
         </MenuItem>

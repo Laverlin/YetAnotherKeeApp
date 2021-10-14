@@ -1,4 +1,5 @@
 import electron from "electron"
+import path from "path";
 import React, { FC, useState } from "react";
 import { RouteComponentProps, useLocation, withRouter } from "react-router-dom";
 import {  createStyles, WithStyles, withStyles, Theme } from "@material-ui/core/styles";
@@ -11,11 +12,6 @@ import SearchBox from "./SearchBox";
 import SortMenu from "./SortMenu";
 import SettingPanel from "./SettingPanel";
 import { useSetRecoilState, useRecoilState} from "recoil";
-
-
-
-import path from "path";
-
 
 const styles = (theme: Theme) =>  createStyles({
     appBar: {
@@ -101,16 +97,23 @@ const styles = (theme: Theme) =>  createStyles({
 
 interface IProps extends WithStyles<typeof styles>, RouteComponentProps  {}
 
-// Tool Bar
+// ToolBar
 //
 const AppToolBar: FC<IProps> = ({classes}) => {
 
+  // Global state
+  //
   const setSortMenu = useSetRecoilState(toolSortMenuAtom);
   const [isDbSaved, setDbSaved] = useRecoilState(isDbSavedSelector);
+  const location = useLocation();
 
+  // local state
   const [isMaximized, setIsMaximized] = useState(electron.remote.getCurrentWindow().isMaximized());
   const [isSettingPanelOpen, setSettingPanel] = useState(false);
+  const dbName = () => { return path.basename(currentContext().filePath) };
 
+  // Event handlers
+  //
   const handleMaximizeWindow = () => {
     setIsMaximized(!isMaximized);
     electron.remote.getCurrentWindow().isMaximized()
@@ -127,12 +130,9 @@ const AppToolBar: FC<IProps> = ({classes}) => {
   }
 
   const handleSave = () => {
-    currentContext.SaveFile();
+    currentContext().SaveContext();
     setDbSaved(true);
   }
-
-  const dbName = path.basename(currentContext.filePath);
-  const location = useLocation();
 
   return(
     <>
@@ -144,11 +144,11 @@ const AppToolBar: FC<IProps> = ({classes}) => {
 
         {(location.pathname != '/') &&
           <>
-            <Typography className = {classes.dbName}> {`/// ${dbName}`}</Typography>
+            <Typography className = {classes.dbName}> {`/// ${dbName()}`}</Typography>
             <div className = {classes.space15}>
               {isDbSaved && <Typography variant='h5'>*</Typography>}
             </div>
-            <Tooltip title = {`Save ${dbName}`}>
+            <Tooltip title = {`Save ${dbName()}`}>
               <IconButton
                 color = "inherit"
                 className = {clsx(isDbSaved ? classes.button : classes.buttonDisabled)}

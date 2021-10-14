@@ -18,7 +18,7 @@ import OpenFilePanel  from './control/OpenFilePanel';
 
 render(
   <RecoilRoot>
-   <GlobalObserver />
+ {/*  <GlobalObserver /> */}
    <React.StrictMode>
       <ThemeProvider theme = {appTheme}>
         <Router>

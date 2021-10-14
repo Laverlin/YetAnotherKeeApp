@@ -8,11 +8,16 @@ import { ProtectedValue } from "kdbxweb"
 interface IProp {
   entry: KdbxItemState
 }
+
 export const CustomPropertyMenu: React.FC<IProp> = ({entry}) => {
 
+  // Global state
+  //
   const [menuState, setMenuState] = useRecoilState(customPropertyMenuAtom);
   const setEntryState = useSetRecoilState(itemStateAtom(entry.uuid.id));
 
+  // Handlers
+  //
   const handlePropertyProtection = () => {
     const fieldOriginal = entry.getField(menuState.fieldId);
     const fieldUpdated = fieldOriginal instanceof ProtectedValue

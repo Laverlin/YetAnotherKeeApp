@@ -1,7 +1,7 @@
 import React, { FC } from "react";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import { ProtectedValue } from "kdbxweb";
-import { DefaultKeeIcon, SystemIcon } from "../../entity/GlobalObject";
+import { DefaultKeeIcon, IKdbxItemState, SystemIcon } from "../../entity";
 import { scrollBar, SvgPath } from "../common";
 import clsx from 'clsx';
 
@@ -28,8 +28,8 @@ import { MaterialUiPickersDate } from "@material-ui/pickers/typings/date";
 import ItemToolbar from "./ItemToolbar";
 import ItemInfoCard from "./ItemInfoCard";
 import AttachInput from "./AttachInput";
-import IconChoicePanel from "./IconChoicePanel";
-import ColorChoicePanel from "./ColorChoicePanel";
+import IconSelectPanel from "./IconSelectPanel";
+import ColorSelectPanel from "./ColorSelectPanel";
 import CustomPropertyPanel from "./CustomPropertyPanel";
 import PasswordGeneratorPanel from "./PasswordGeneratorPanel";
 import {
@@ -42,7 +42,7 @@ import {
   itemStateAtom,
   KdbxEntryStateReadOnly,
   selectItemSelector,
-  currentContext,
+  GlobalContext,
 } from "../../entity";
 import PropertyInput from "./PropertyInput";
 import { CustomPropertyMenu } from "./CustomPropertyMenu";
@@ -142,9 +142,11 @@ class FieldInfo {
 
 interface IProps extends WithStyles<typeof styles> {}
 
-const DetailPanel: FC<IProps> = ({classes}) => {
+const ItemDetailPanel: FC<IProps> = ({classes}) => {
 
-  const entryUuid = useRecoilValue(selectItemSelector) || currentContext.allItemsGroupUuid;
+  // Global state
+  //
+  const entryUuid = useRecoilValue(selectItemSelector) || GlobalContext.allItemsGroupUuid;
   const [entry, setEntryState] = useRecoilState(itemStateAtom(entryUuid.id));
   const historyState = useRecoilValue(historyAtom(entryUuid.id));
   const setCustomPropPanel = useSetRecoilState(customPropertyPanelAtom);
@@ -152,16 +154,12 @@ const DetailPanel: FC<IProps> = ({classes}) => {
   const setColorPanel = useSetRecoilState(colorChoisePanelAtom);
   const allTags = useRecoilValue(tagSelector);
 
-
   if (!entry || entry.isAllItemsGroup) {
     return (<Typography variant='h2' className = {classes.emptySplash}>Select Item to View</Typography>);
   }
 
-
-
-  console.log(`detail ${entry.title} rendering`);
-  console.log(entry);
-
+  // handlers
+  //
   const handleTitleChange = (inputValue: string) => {
     setEntryState(entry.setTitle(inputValue));
   }
@@ -174,6 +172,8 @@ const DetailPanel: FC<IProps> = ({classes}) => {
     setEntryState(entry.setExpiryTime(date || undefined));
   }
 
+  // helpers
+  //
   const fieldInfos = new Map<string, FieldInfo>([
       ['Title', {sortOrder: -5} as FieldInfo],
       ['UserName', {sortOrder: -4} as FieldInfo],
@@ -227,25 +227,24 @@ const DetailPanel: FC<IProps> = ({classes}) => {
 
         <div className = {clsx(classes.entityItems, classes.scrollBar)} >
           {Array.from(entryView.fields)
-            .filter(f => f[0] !== 'Title')
             .map(field => {
-              let info = (fieldInfos.get(field[0]) ? fieldInfos.get(field[0]) : {sortOrder: 0} as FieldInfo)
-              return {...field, ...info}
+              let info = (fieldInfos.get(field[0]) || {sortOrder: 0} as FieldInfo)
+              return {name: field[0], value: field[1], ...info }
             })
+            .filter(f => f.name !== 'Title')
             .sort((a, b) => a.sortOrder as number - (b.sortOrder as number))
             .map(field =>
-              <div key = {field[0]}>
+              <div key = {field.name}>
                 <PropertyInput
-                  key = {entryView.uuid.id + field[0]}
                   entry = {entryView}
-                  fieldId = {field[0]}
-                  inputValue = {field[1] instanceof ProtectedValue ? field[1].getText() : field[1]}
-                  isProtected = {field.isProtected as boolean || field[1] instanceof ProtectedValue}
+                  fieldId = {field.name}
+                  inputValue = {field.value instanceof ProtectedValue ? field.value.getText() : field.value}
+                  isProtected = {field.isProtected as boolean || field.value instanceof ProtectedValue}
                   isMultiline = {field.isMultiline as boolean}
                   isCustomProperty = {field.sortOrder === 0}
                   disabled = {historyState.isInHistory}
                 />
-                {field[0] === 'URL' &&
+                {field.name === 'URL' &&
                   <Tooltip title = 'Add Custom Property' key = 'plusButton'>
                     <IconButton
                       className = {classes.smallIcon}
@@ -318,12 +317,12 @@ const DetailPanel: FC<IProps> = ({classes}) => {
 
         <CustomPropertyMenu entry = {entry} />
         <CustomPropertyPanel entry = {entry} />
-        <IconChoicePanel entry = {entry} />
-        <ColorChoicePanel entry = {entry} />
+        <IconSelectPanel entry = {entry} />
+        <ColorSelectPanel entry = {entry} />
         <PasswordGeneratorPanel entry = {entry} />
 
       </form>
     )
 }
 
-export default withStyles(styles, { withTheme: true })(React.memo(DetailPanel));
+export default withStyles(styles, { withTheme: true })(React.memo(ItemDetailPanel));

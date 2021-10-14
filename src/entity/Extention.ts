@@ -1,9 +1,10 @@
-import { KdbxEntry, KdbxUuid } from "kdbxweb";
+import { KdbxUuid } from "kdbxweb";
 
 export class KdbxUuidFactory {
 
   /** Creates KbdxUuid form the hex sting
-   *  @example KdbxUuidFactory.fromHexString('0000000000000000000000000000AAAA');
+   *  @example
+   *    KdbxUuidFactory.fromHexString('0000000000000000000000000000AAAA');
    */
   public static fromHexString(hexString: string): KdbxUuid {
     if (hexString.length !== 32)
@@ -29,7 +30,6 @@ declare global {
   export interface Map<K, V> {
     findFirstValue<V>(predicate: (item: V) => boolean): V | undefined
   }
-
 }
 
 export function findFirst<T>(iterable: IterableIterator<T>, predicate: (item: T) => boolean): T | undefined {

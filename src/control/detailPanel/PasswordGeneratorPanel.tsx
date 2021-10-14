@@ -7,7 +7,6 @@ import { KeysOfType, PasswordGenerator, PasswordGenerationOptions } from '../../
 import { useRecoilState, useSetRecoilState } from 'recoil';
 
 
-
 const styles = (theme: Theme) =>  createStyles({
   root: {
     display: 'flex',
@@ -31,13 +30,18 @@ interface IProps  extends WithStyles<typeof styles> {
 
 const PasswordGeneratorPanel: FC<IProps> = ({classes, entry}) =>  {
 
-  const [passwordOptions, setPasswordOptions] = useState(new PasswordGenerationOptions());
-  const [generatedPassword, setGeneratedPassword] = useState('');
-
+  // global state
+  //
   const [panelState, setPanelState] = useRecoilState(passwordPanelAtom);
   const setEntryState = useSetRecoilState(itemStateAtom(entry.uuid.id));
 
+  // local state
+  //
+  const [passwordOptions, setPasswordOptions] = useState(new PasswordGenerationOptions());
+  const [generatedPassword, setGeneratedPassword] = useState('');
 
+  // handlers
+  //
   const handleOptionChange = (option: KeysOfType<PasswordGenerationOptions, boolean>) => {
     passwordOptions[option] = !passwordOptions[option];
     generatePassword(passwordOptions);

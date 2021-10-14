@@ -6,18 +6,18 @@ import {
   DefaultFields,
   DefaultKeeIcon,
   closeItemContextMenu,
-  itemContextMenuAtom,
+  entryContextMenuAtom,
   notificationAtom,
   SystemIcon,
-  treeStateUpdateSelector
+  itemIdsUpdateSelector
 } from '../../entity';
 import { SvgPath } from '../common';
 
 export const EntryContextMenu: FC = () => {
 
-  const [contextMenuState, setContextMenuState] = useRecoilState(itemContextMenuAtom);
+  const [contextMenuState, setContextMenuState] = useRecoilState(entryContextMenuAtom);
   const setMessage = useSetRecoilState(notificationAtom);
-  const setTreeState = useSetRecoilState(treeStateUpdateSelector);
+  const setTreeState = useSetRecoilState(itemIdsUpdateSelector);
 
   const handleCopy = (fieldName: keyof typeof DefaultFields, event: React.MouseEvent<Element, MouseEvent>): void => {
     event.stopPropagation();

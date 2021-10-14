@@ -33,18 +33,26 @@ interface IProp extends WithStyles<typeof styles> {
 const PropertyInput: React.FC<IProp> =
   ({classes, entry, fieldId, inputValue, isProtected, isMultiline, isCustomProperty, disabled}) => {
 
+    // global state
+    //
     const setEntryState = useSetRecoilState(itemStateAtom(entry.uuid.id));
     const setMenuState = useSetRecoilState(customPropertyMenuAtom);
     const setPwdPanelState = useSetRecoilState(passwordPanelAtom);
-    const [isShowText, toggleShowText] = useState<boolean>(!isProtected);
 
+    // local state
+    //
+    const [isShowText, toggleShowText] = useState<boolean>(!isProtected);
     useEffect(() => {toggleShowText(!isProtected)}, [isProtected])
 
+    // handlers
+    //
     const handlePropertyChande = (fieldId: string, value: string) => {
       const fieldValue = isProtected ? ProtectedValue.fromString(value) : value;
       setEntryState(entry.setField(fieldId, fieldValue));
     }
 
+    // helpers
+    //
     const adornment = {
       endAdornment: (
         <InputAdornment position="end">

@@ -6,7 +6,7 @@ import {
   DefaultFields,
   DefaultKeeIcon,
   SystemIcon,
-  itemContextMenuAtom,
+  entryContextMenuAtom,
   notificationAtom,
   openItemContextMenu,
   itemStateAtom,
@@ -147,10 +147,10 @@ interface IProps extends WithStyles<typeof styles>{
   entryUuid: KdbxUuid
 }
 
-const EntryItem: FC<IProps> = ({classes, entryUuid}) => {
+const EntryListItem: FC<IProps> = ({classes, entryUuid}) => {
 
   const setSelection = useSetRecoilState(selectItemSelector);
-  const setContextMenuState = useSetRecoilState(itemContextMenuAtom);
+  const setContextMenuState = useSetRecoilState(entryContextMenuAtom);
   const setNotification = useSetRecoilState(notificationAtom);
   const entry = useRecoilValue(itemStateAtom(entryUuid.id));
 
@@ -165,8 +165,6 @@ const EntryItem: FC<IProps> = ({classes, entryUuid}) => {
     }
   }
 
-  console.log(`${entry.title} rendered`);
-
   return (
     <LightTooltip title = {entry.getFieldUnprotected('Notes')}>
       <div
@@ -178,7 +176,6 @@ const EntryItem: FC<IProps> = ({classes, entryUuid}) => {
         }
       >
         <div style={{width:'8px', background: entry.bgColor }}/>
-
         <div
           className = {clsx(classes.mainIconDiv,  entry.hasPassword && classes.copyCursor)}
           onDoubleClick = {() => entry.hasPassword && handleCopy('Password')}
@@ -190,20 +187,16 @@ const EntryItem: FC<IProps> = ({classes, entryUuid}) => {
         </div>
         <div className = {classes.itemContent}>
           <div className = {classes.itemContentRow}>
-            <div className = {clsx(classes.title,
-                               entry.isExpires &&
-                                (entry.expiryTime?.valueOf() || 0) < Date.now() &&
-                                classes.titleExpired,
-                               entry.isGroup && classes.titleFolder
-                             )}
-            >
+            <div className = {
+              clsx(classes.title, entry.isExpiredNow && classes.titleExpired, entry.isGroup && classes.titleFolder)
+            }>
               {entry.title}
             </div>
             {entry.isExpires &&
               <div className={clsx(
                 classes.titleSecondary,
                 classes.flexAlignRight,
-                entry.isExpires && (entry.expiryTime?.valueOf() || 0) < Date.now() && classes.timeExpired)
+                entry.isExpiredNow && classes.timeExpired)
               }>
                 <SvgPath className={classes.inlineLeftIcon} path = {SystemIcon.expire} />
                 {entry.expiryTime?.toDateString()}
@@ -252,7 +245,6 @@ const EntryItem: FC<IProps> = ({classes, entryUuid}) => {
         </div>
         <div className = {classes.contextMenuButton}>
           <IconButton
-            id = {'context-' + entry.uuid.id}
             className = {classes.contextMenuIcon}
             onClick = {e => setContextMenuState(openItemContextMenu(e.currentTarget, entry))}
           >
@@ -266,5 +258,5 @@ const EntryItem: FC<IProps> = ({classes, entryUuid}) => {
 
 }
 
-export default withStyles(styles, { withTheme: true })(React.memo(EntryItem));
+export default withStyles(styles, { withTheme: true })(React.memo(EntryListItem));
 

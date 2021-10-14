@@ -1,6 +1,6 @@
 import electron from "electron"
 import * as React from 'react';
-import { Box, createStyles, Popover, Tab, Tabs, Theme, Typography, withStyles, WithStyles } from '@material-ui/core';
+import { createStyles, Popover, Tab, Tabs, Theme, Typography, withStyles, WithStyles } from '@material-ui/core';
 import { TabContext, TabPanel } from "@material-ui/lab";
 
 
@@ -15,12 +15,6 @@ const styles = (theme: Theme) =>  createStyles({
     width: '100%'
   }
 });
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: any;
-  value: any;
-}
 
 interface ISettingPanelProps extends WithStyles<typeof styles> {
   isPanelOpen: boolean;

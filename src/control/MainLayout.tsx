@@ -5,9 +5,9 @@ import {
   withStyles,
   Theme,
 } from '@material-ui/core/styles';
-import GroupPanel from './groupList/GroupPanel';
-import EntryPanel from './entryList/EntryPanel';
-import DetailPanel from './detailPanel/DetailPanel';
+import GroupTreePanel from './groupList/GroupTreePanel';
+import EntryListPanel from './entryList/EntryListPanel';
+import DetailPanel from './detailPanel/ItemDetailPanel';
 import {NotificationPanel} from './common/NotificationPanel';
 
 class DraggerPosition {
@@ -126,7 +126,7 @@ class MainLayout extends React.Component<Props> {
           className={classes.leftBar}
           style={{ width: this.state.draggers[0].position }}
         >
-          <GroupPanel />
+          <GroupTreePanel />
         </div>
         <div
           className={classes.dragger}
@@ -140,7 +140,7 @@ class MainLayout extends React.Component<Props> {
             right: window.innerWidth - this.state.draggers[1].position
           }}
         >
-          <EntryPanel />
+          <EntryListPanel />
         </div>
 
         <div

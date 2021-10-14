@@ -1,39 +1,53 @@
 import assert from "assert";
 import { KdbxBinary, KdbxBinaryWithHash, KdbxEntry, KdbxEntryField, KdbxGroup, KdbxUuid, ProtectedValue } from "kdbxweb";
-import { currentContext, ITreeStateChange } from './GlobalContext';
+import { currentContext, GlobalContext } from './GlobalContext';
+import { IKdbxItemState } from "./IKdbxItemState";
 
 /**
  * Simplified and unified work with KdbxEntry & KdbxGroup
  */
-export class KdbxItemState {
+export class KdbxItemState implements IKdbxItemState {
 
-  #uuid: KdbxUuid
-  #isSelected: boolean;
-  #isChanged: boolean;
+  private _isSelected: boolean;
+  private _isChanged: boolean;
 
   constructor(uuid: KdbxUuid) {
-    this.#uuid = uuid;
-    this.#isChanged = false;
-    this.#isSelected = false;
+    this.uuid = uuid;
+    this._isChanged = false;
+    this._isSelected = false;
   }
 
-  get isChanged(): boolean { return this.#isChanged }
-  resetChanged(): KdbxItemState {
+  /**
+   * is there any changes since last save
+   */
+  get isChanged(): boolean { return this._isChanged }
+
+  /**
+   * set is changed state
+   */
+  setChanged(isChanged: boolean): KdbxItemState {
     let newState = this.clone();
-    newState.#isChanged = false;
+    newState._isChanged = isChanged;
     return newState;
   }
 
-  get isSelected(): boolean { return this.#isSelected }
+  /**
+   * is this item selected
+   */
+  get isSelected(): boolean { return this._isSelected }
+
+  /**
+   * sets the selected state
+   */
   setSelected(isSelected: boolean): KdbxItemState {
     let newState = this.clone();
-    newState.#isSelected = isSelected;
+    newState._isSelected = isSelected;
     return newState;
   }
 
   /** Readonly unique identifier of entity
    */
-  get uuid(): KdbxUuid { return this.#uuid };
+  readonly uuid: KdbxUuid;
 
 
   /** Readonly unique identifier of parent entity
@@ -43,25 +57,33 @@ export class KdbxItemState {
   /** Sorting index for groups
    */
   get groupSortOrder(): number {
-    return this._entry.parentGroup?.groups.findIndex(g => g.uuid.equals(this.#uuid)) || 0;
+    return this._entry.parentGroup?.groups.findIndex(g => g.uuid.equals(this.uuid)) || 0;
   }
 
   /** Is this entity Group of entities
    */
   get isGroup(): boolean { return this._entry instanceof KdbxGroup };
 
-  get isDefaultGroup(): boolean { return this.uuid.equals(currentContext.defaultGroupUuid) }
-  get isRecycleBin(): boolean { return this.uuid.equals(currentContext.recycleBinUuid) }
-  get isAllItemsGroup(): boolean { return this.uuid.equals(currentContext.allItemsGroupUuid) }
+  /** Is this entry a default group
+   */
+  get isDefaultGroup(): boolean { return this.uuid.equals(currentContext().defaultGroupUuid) }
+
+  /** Is this entry a recycle bin
+   */
+  get isRecycleBin(): boolean { return this.uuid.equals(currentContext().recycleBinUuid) }
+
+  /** is this item an artifitial AllItemsGroup
+   */
+  get isAllItemsGroup(): boolean { return this.uuid.equals(GlobalContext.allItemsGroupUuid) }
 
   /** Traversing all parents up to top and check if this item is in Recycled
    */
   get isRecycled(): boolean {
-    if (!currentContext.recycleBinUuid)
+    if (!currentContext().isRecycleBinAvailable)
       return false;
     let parent = this._entry.parentGroup;
     while(parent) {
-      if (parent.uuid.equals(currentContext.recycleBinUuid))
+      if (parent.uuid.equals(currentContext().recycleBinUuid))
         return true;
       parent = parent.parentGroup;
     }
@@ -110,12 +132,17 @@ export class KdbxItemState {
    */
   get expiryTime(): Date | undefined { return this._entry.times.expiryTime }
 
+  /** sets the expiration time, remove if undefined
+   */
   setExpiryTime(value: Date | undefined): KdbxItemState {
       return this._applyChanges(item =>{
         item.times.expires = !!value
         item.times.expiryTime = value
     })
   }
+
+  get isExpiredNow():boolean { return this.isExpires && (this.expiryTime?.valueOf() || 0) < Date.now() }
+
 
   get lastModifiedTime(): Date { return new Date(this._entry.lastModTime) }
 
@@ -134,7 +161,7 @@ export class KdbxItemState {
   }
 
   get customIcon(): string | undefined {
-    const buffer = currentContext.getCustomIcon(this.customIconUuid || new KdbxUuid())?.data;
+    const buffer = currentContext().getCustomIcon(this.customIconUuid || new KdbxUuid())?.data;
     return buffer
       ? 'data:image;base64,' + btoa(String.fromCharCode(...new Uint8Array(buffer)))
       : '';
@@ -226,8 +253,8 @@ export class KdbxItemState {
 
   clone() {
     let item = new KdbxItemState(this.uuid);
-    item.#isChanged = this.#isChanged;
-    item.#isSelected = this.#isSelected;
+    item._isChanged = this._isChanged;
+    item._isSelected = this._isSelected;
 
     return item;
   }
@@ -237,31 +264,28 @@ export class KdbxItemState {
     while (uuid) {
       if (uuid.equals(this.uuid))
         return false
-      uuid = currentContext.getKdbxItem(uuid).parentGroup?.uuid
+      uuid = currentContext().getKdbxItem(uuid).parentGroup?.uuid
     }
     return true;
   }
 
-  moveItem(parentGroupUuid: KdbxUuid): ITreeStateChange | undefined {
+  moveItem(parentGroupUuid: KdbxUuid): KdbxUuid | undefined {
     if (!this.isMovingAllowed(parentGroupUuid))
       return undefined
 
-    const kdbxGroup = currentContext.getKdbxItem(parentGroupUuid);
+    const kdbxGroup = currentContext().getKdbxItem(parentGroupUuid);
     assert(kdbxGroup instanceof KdbxGroup);
 
     const kdbxItem = this._applyChanges(item => {
-      currentContext.database.move(item, kdbxGroup)
+      currentContext().moveItem(item, kdbxGroup)
     })
 
-    return {
-      item: kdbxItem,
-      treeChanges: {itemUuid: kdbxItem.uuid, parentUuid: parentGroupUuid}
-    }
+    return kdbxItem.uuid
   }
 
-  deleteItem(): ITreeStateChange | undefined {
-    assert(currentContext.recycleBinUuid)
-    return this.moveItem(currentContext.recycleBinUuid);
+  deleteItem(): KdbxUuid | undefined {
+    assert(currentContext().isRecycleBinAvailable)
+    return this.moveItem(currentContext().recycleBinUuid!);
   }
 
   /**
@@ -269,7 +293,7 @@ export class KdbxItemState {
    * @param isUp - direction
    * @returns updated group
    */
-  shiftGroup(isUp: boolean): ITreeStateChange | undefined {
+  shiftGroup(isUp: boolean): KdbxUuid | undefined {
     if (!this._entry.parentGroup ||
       !this.isGroup ||
       this.isDefaultGroup ||
@@ -284,16 +308,14 @@ export class KdbxItemState {
       return undefined;
 
     let kdbxItem = this._applyChanges(item => {
-      currentContext.database.move(item, item.parentGroup, atIndex);
+      assert(item.parentGroup);
+      currentContext().moveItem(item, item.parentGroup, atIndex);
     })
-    return {
-      item: kdbxItem,
-      treeChanges: {itemUuid: kdbxItem.uuid, parentUuid: kdbxItem.parentUuid}
-    }
+    return kdbxItem.uuid
   }
 
   protected get _entry(): KdbxEntry | KdbxGroup {
-    return currentContext.getKdbxItem(this.#uuid);
+    return currentContext().getKdbxItem(this.uuid);
   }
 
   private _applyChanges(action: (item: KdbxEntry | KdbxGroup) => void) {
@@ -305,63 +327,10 @@ export class KdbxItemState {
       item._entry.times.update();
     }
     action(item._entry);
-    item.#isChanged = true;
+    item._isChanged = true;
     return item;
   }
 
 }
 
-/**
- * Used to walk through Entry history
- */
-export class KdbxEntryStateReadOnly extends KdbxItemState {
 
-  private entry: KdbxEntry;
-
-  constructor(entry: KdbxEntry) {
-    super(entry.uuid)
-    const cloned = new KdbxEntry();
-    cloned.copyFrom(entry);
-    this.entry = cloned;
-  }
-
-  protected get _entry(): KdbxEntry | KdbxGroup {
-    return this.entry;
-  }
-}
-
-/**
- * artifitial wrapper to represent All Entries item in group list
- */
-export class AllItemsGroupState extends KdbxItemState {
-
-  private entry: KdbxGroup;
-  #isSelected: boolean = false;
-
-  constructor(isSelected?: boolean) {
-    super(currentContext.allItemsGroupUuid)
-    const allItemsGroup = new KdbxGroup();
-    allItemsGroup.uuid = currentContext.allItemsGroupUuid;
-    allItemsGroup.name = 'All Entries';
-    this.entry = allItemsGroup;
-    this.#isSelected = isSelected || false;
-  }
-
-  protected get _entry(): KdbxEntry | KdbxGroup {
-    return this.entry;
-  }
-
-  clone(): AllItemsGroupState {
-    let item = new AllItemsGroupState();
-    item.#isSelected = this.#isSelected;
-    return item;
-  }
-
-  get isSelected(): boolean { return this.#isSelected }
-
-  setSelected(isSelected: boolean): AllItemsGroupState {
-    const item = this.clone();
-    item.#isSelected = isSelected;
-    return item;
-  }
-}

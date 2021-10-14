@@ -4,7 +4,7 @@ import {useRecoilValue} from 'recoil';
 import { createStyles, Theme, Typography,  withStyles, WithStyles} from "@material-ui/core";
 import { scrollBar } from "../common";
 import { filteredEntriesSelector } from "../../entity";
-import EntryItem from "./EntryItem";
+import EntryItem from "./EntryListItem";
 import { EntryContextMenu } from "./EntryContextMenu";
 
 const styles = (theme: Theme) =>  createStyles({
@@ -30,11 +30,9 @@ const styles = (theme: Theme) =>  createStyles({
 
 interface IProps extends WithStyles<typeof styles> {}
 
-const EntryPanel: FC<IProps> = ({classes}) => {
+const EntryListPanel: FC<IProps> = ({classes}) => {
 
   const filteredEntries = useRecoilValue(filteredEntriesSelector);
-
-  console.warn('render entry panel')
 
   if (filteredEntries.length === 0) {
     return (
@@ -62,4 +60,4 @@ const EntryPanel: FC<IProps> = ({classes}) => {
   )
 }
 
-export default withStyles(styles, { withTheme: true })(EntryPanel);
+export default withStyles(styles, { withTheme: true })(EntryListPanel);

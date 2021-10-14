@@ -1,23 +1,21 @@
-import { KdbxUuid } from 'kdbxweb';
+import { KdbxEntryField, KdbxUuid, ProtectedValue } from 'kdbxweb';
 import {atom, selector} from 'recoil'
-import {itemStateAtom, KdbxItemState, treeStateAtom} from '..'
-import { currentContext } from '../model/GlobalContext';
-import { AllItemsGroupState } from '../model/KdbxItemState';
-import { selectGroupAtom } from './ItemStateAtom';
+import { AllItemsGroupState, GlobalContext, itemStateAtom, selectGroupAtom, KdbxItemState, itemIdsAtom, ISortMenuItem, sortMenuItems} from '..'
 
+/**
+ * Base selector to filter items in selected gorup.
+ */
 export const entriesSelector = selector<KdbxItemState[]>({
   key: 'entriesSelector',
   get: ({get}) => {
-
-    console.error('recalc')
 
     const groupUuid = get(selectGroupAtom)
     if (!groupUuid)
       return [];
 
-    const selectedGroup = groupUuid.equals(currentContext.allItemsGroupUuid)
+    const selectedGroup = groupUuid.equals(GlobalContext.allItemsGroupUuid)
       ? new AllItemsGroupState()
-      : get(itemStateAtom(groupUuid.id))//new KdbxItemState(groupUuid)
+      : get(itemStateAtom(groupUuid.id))
 
     const filter = (item: KdbxItemState) => {
       return ((!item.isGroup || selectedGroup.isRecycleBin) &&
@@ -28,88 +26,87 @@ export const entriesSelector = selector<KdbxItemState[]>({
       )
     }
 
-    return get(treeStateAtom)
-      .map(i => get(itemStateAtom(i.itemUuid.id)))
+    return get(itemIdsAtom)
+      .map(uuid => get(itemStateAtom(uuid.id)))
       .filter(filter)
   }
 })
 
+/**
+ * Selector to get all available tags
+ */
 export const tagSelector = selector<string[]>({
   key: 'tagSelector',
   get: ({get}) => {
     let tags: string[] = [];
-    tags = get(treeStateAtom).map(i => tags.concat(get(itemStateAtom(i.itemUuid.id)).tags)).flat();
+    tags = get(itemIdsAtom).map(i => tags.concat(get(itemStateAtom(i.id)).tags)).flat();
     return [...new Set(tags)].sort();
   }
 })
 
+/**
+ * Atom to store the state of selected filters
+ */
 export const tagFilterAtom = atom<string[]>({
   key: 'group/tagFilterAtom',
   default: []
 })
 
+/**
+ * Atom to store the state of selected colors
+ */
 export const colorFilterAtom = atom<{color:string}>({
   key: 'group/colorFilterAtom',
   default: {color: ''}
 })
 
+/**
+ * Atom to store the state of query string
+ */
 export const searchFilterAtom = atom<string>({
   key: 'top/searchFilter',
   default: ''
 })
 
-export interface ISortMenuItem {
-  id: number;
-  displayName: string;
-  compare: (a: KdbxItemState, b: KdbxItemState) => number;
-}
-
-export const sortMenuItems = [
-  { displayName: 'Sort by Title',
-    compare: (a: KdbxItemState, b: KdbxItemState) =>
-      a.getFieldUnprotected('Title').localeCompare(b.getFieldUnprotected('Title')),
-    id: 0
-  },
-  { displayName: 'Sort by User Name',
-    compare: (a: KdbxItemState, b: KdbxItemState) =>
-      a.getFieldUnprotected('UserName').localeCompare(b.getFieldUnprotected('UserName')),
-    id: 1
-  },
-  { displayName: 'Sort by URL',
-    compare: (a: KdbxItemState, b: KdbxItemState) =>
-      a.getFieldUnprotected('URL').localeCompare(b.getFieldUnprotected('URL')),
-    id: 2
-  },
-  { displayName: 'Sort by Creation Time',
-    compare: (a: KdbxItemState, b: KdbxItemState) =>
-      a.creationTime.valueOf() - b.creationTime.valueOf(),
-    id: 3
-  }
-]
-
+/**
+ * Atom to store the sort order state
+ */
 export const sortEntriesAtom = atom<ISortMenuItem>({
   key: 'top/sortMenu',
   default: sortMenuItems[0]
 })
 
+/**
+ * Selector to filter items according to all available filters and sort them
+ */
 export const filteredEntriesSelector = selector<KdbxUuid[]>({
   key: 'filteredEntriesSelector',
   get: ({get}) => {
-    console.error('re sort')
+
+    const filterRecord = (item: KdbxItemState, query: string): boolean => {
+      const normalizedQuery = query.toLocaleLowerCase();
+      return !!item.fields.findFirstValue<KdbxEntryField>(i =>
+        i instanceof ProtectedValue
+          ? i.getText().toLocaleLowerCase().includes(normalizedQuery)
+          : i.toLocaleLowerCase().includes(normalizedQuery)
+        ) ||
+        !!item.tags.find(t => t.toLocaleLowerCase().includes(normalizedQuery))
+    }
+
     const colorFilter = get(colorFilterAtom);
     const tagFilter = get(tagFilterAtom);
     const searchFilter = get(searchFilterAtom);
     const sortField = get(sortEntriesAtom);
     let filtered = get(entriesSelector);
+
     if (colorFilter.color)
       filtered = filtered.filter(e => e.bgColor === colorFilter.color);
     if (tagFilter.length > 0)
-      filtered = filtered.filter(e => e.tags.filter(t => tagFilter.includes(t)).length > 0)
+      filtered = filtered.filter(e => e.tags.filter(t => tagFilter.includes(t)).length > 0);
     if (searchFilter)
-      filtered = filtered.filter(e =>
-        Array.from(e.fields.values()).filter(f => f.includes(searchFilter)).length > 0
-      )
-    filtered = filtered.slice().sort(sortField.compare)
+      filtered = filtered.filter(e => filterRecord(e, searchFilter));
+    filtered = filtered.slice().sort(sortField.compare);
+
     return filtered.map(i => i.uuid);
   }
 })

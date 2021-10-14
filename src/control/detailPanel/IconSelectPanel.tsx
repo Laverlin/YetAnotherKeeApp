@@ -41,13 +41,19 @@ interface IProps  extends WithStyles<typeof styles> {
   entry: KdbxItemState
 }
 
-const IconChoicePanel: React.FC<IProps> = ({classes, entry}) => {
+const IconSelectPanel: React.FC<IProps> = ({classes, entry}) => {
 
+  // global state
+  //
   const setEntryState = useSetRecoilState(itemStateAtom(entry.uuid.id));
   const [panelState, setPanelState] = useRecoilState(iconChoisePanelAtom);
 
+  // local state
+  //
   const [_, forceUpdate] = useReducer(x => x + 1, 0);
 
+  // handlers
+  //
   const handleIconChange = (isPredefinedIcon: boolean, iconId: string) => {
     if (isPredefinedIcon) {
       const defaultIconId = Object.keys(DefaultKeeIcon).findIndex(key => key === iconId);
@@ -69,12 +75,12 @@ const IconChoicePanel: React.FC<IProps> = ({classes, entry}) => {
     const data = fs.readFileSync(files[0]);
     let icon: KdbxCustomIcon = {data: new Uint8Array(data).buffer}
     const uuid = KdbxUuid.random();
-    currentContext.database.meta.customIcons.set(uuid.id, icon);
+    currentContext().setCustomIcon(uuid.id, icon);
     forceUpdate();
   }
 
   const handleRemoveUnused = () => {
-    currentContext.removeUnusedIcons();
+    currentContext().removeUnusedIcons();
     forceUpdate();
   }
 
@@ -117,12 +123,12 @@ const IconChoicePanel: React.FC<IProps> = ({classes, entry}) => {
               </Typography>
             </ListSubheader>
           </GridListTile>
-          {currentContext.allCustomIcons.map(icon =>
+          {currentContext().allCustomIcons.map(icon =>
             <GridListTile key = {icon.iconId}>
               <IconButton size='medium' onClick = {() => handleIconChange(false, icon.iconId)}>
                 <img
                   className = {classes.customIcon}
-                  src={icon.iconImage}/>
+                  src = {icon.iconImage}/>
               </IconButton>
             </GridListTile>
           )}
@@ -133,5 +139,5 @@ const IconChoicePanel: React.FC<IProps> = ({classes, entry}) => {
 }
 
 
-export default withStyles(styles, { withTheme: true })(IconChoicePanel);
+export default withStyles(styles, { withTheme: true })(IconSelectPanel);
 

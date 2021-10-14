@@ -54,6 +54,7 @@ const TagSelectListItem: FC<IProps> = ({classes}) => {
 
   return (
     <ListItem
+      disabled = {!tags || tags.length === 0}
       button
       className = {classes.listItem}
       onClick = {e => toggleTagMenu(e)}

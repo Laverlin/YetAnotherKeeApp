@@ -1,41 +1,31 @@
-import { atom, atomFamily } from 'recoil'
+import { atom } from 'recoil'
 import { KdbxItemState } from '..'
 
+/**
+ * common contract for panels state
+ */
 export interface IPanelState {
   panelAnchor: Element | null;
   isShowPanel: boolean
 }
 
+/**
+ * constant to close panel
+ */
 export const closePanel: IPanelState = {
   isShowPanel: false,
   panelAnchor: null
 }
 
+/**
+ * function helper to open panel at specifed element
+ */
 export const openPanel = (panelAchor: Element): IPanelState => {
   return {
     isShowPanel: true,
     panelAnchor: panelAchor
   }
 }
-
-export interface ICustomPropMenuState extends IPanelState {
-  isProtected: boolean
-  fieldId: string
-}
-
-export interface IHistoryState {
-  isInHistory: boolean
-  historyIndex: number
-}
-
-export const customPropertyMenuAtom = atom<ICustomPropMenuState>({
-  key: 'detail/customPropertyMenuAtom',
-  default: {
-    ...closePanel,
-    isProtected: false,
-    fieldId: ''
-  } as ICustomPropMenuState
-})
 
 export const customPropertyPanelAtom = atom<IPanelState>({
   key: 'detail/customPropertyPanelAtom',
@@ -57,40 +47,71 @@ export const passwordPanelAtom = atom<IPanelState>({
   default: closePanel
 })
 
-export const historyAtom = atomFamily<IHistoryState, string>({
-  key: 'detail/historyAtom',
-  default:  {
-      isInHistory: false,
-      historyIndex: 0
-    }
+export const toolSortMenuAtom = atom<IPanelState>({
+  key: 'toolbar/SortMenuAtom',
+  default: closePanel
 })
 
+/**
+ * additional data for the custom property menu in detail panel
+ */
+export interface ICustomPropMenuState extends IPanelState {
+  isProtected: boolean
+  fieldId: string
+}
+
+export const customPropertyMenuAtom = atom<ICustomPropMenuState>({
+  key: 'detail/customPropertyMenuAtom',
+  default: {
+    ...closePanel,
+    isProtected: false,
+    fieldId: ''
+  } as ICustomPropMenuState
+})
+
+/**
+ * Additional data for context menu in group tree and entry list
+ */
 export interface IItemContextMenuState extends IPanelState {
   entry: KdbxItemState | undefined
 }
 
+/**
+ * const to close context menu
+ */
 export const closeItemContextMenu = {...closePanel, entry: undefined}
+
+/**
+ * func to open context menu for specific entry
+ * @param anchor element co ancor menu on sccreen
+ * @param entry context data
+ */
 export const openItemContextMenu = (anchor: Element, entry: KdbxItemState) => {
   return {...openPanel(anchor), entry: entry};
 }
 
-export const itemContextMenuAtom = atom<IItemContextMenuState>({
-  key: 'item/contextMenuAtom',
+/**
+ * Atom for the state of the entry context menu
+ */
+export const entryContextMenuAtom = atom<IItemContextMenuState>({
+  key: 'entry/contextMenuAtom',
   default: closeItemContextMenu
 })
 
-export const notificationAtom = atom<string>({
-  key: 'global/notification',
-  default: ''
-})
+/**
+ * Atom for the state of the group context menu
+ */
 
 export const groupContextMenuAtom = atom<IItemContextMenuState>({
   key: 'group/contextMenuAtom',
   default: closeItemContextMenu
 })
 
-export const toolSortMenuAtom = atom<IPanelState>({
-  key: 'toolbar/SortMenuAtom',
-  default: closePanel
+/**
+ * atom to store notifications
+ */
+export const notificationAtom = atom<string>({
+  key: 'global/notification',
+  default: ''
 })
 

@@ -12,7 +12,6 @@ import {colorFilterAtom, DefaultColors, SystemIcon } from "../../entity";
 import {groupListStyles} from "./groupListStyles"
 import {SvgPath} from "../common";
 import { useRecoilState } from "recoil";
-import { stringToBytes } from "kdbxweb/dist/types/utils/byte-utils";
 
 interface IProps extends WithStyles<typeof groupListStyles> {}
 

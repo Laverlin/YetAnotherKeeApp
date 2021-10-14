@@ -1,4 +1,4 @@
-import React, { useReducer, useState } from "react";
+import React, { useReducer, useRef, useState } from "react";
 import {useSetRecoilState, useRecoilCallback} from 'recoil'
 import { RouteComponentProps, withRouter } from "react-router-dom";
 import { createStyles, WithStyles, withStyles, Theme } from "@material-ui/core/styles";
@@ -12,13 +12,23 @@ import {
   TextField,
   Typography
 } from "@material-ui/core";
-import { DefaultKeeIcon, SystemIcon } from "../entity/GlobalObject";
+import { DefaultKeeIcon, SystemIcon } from "../entity";
 import { remote } from "electron";
 import path from "path";
 import { SvgPath } from "./common/SvgPath";
 import { ProtectedValue } from "kdbxweb";
 import { Setting, UserSetting } from "../entity/SettingStorage";
-import { colorFilterAtom, currentContext, isDbSavedSelector, searchFilterAtom, selectItemSelector, tagFilterAtom, treeStateAtom } from "../entity";
+import {
+  colorFilterAtom,
+  currentContext,
+  isDbSavedSelector,
+  searchFilterAtom,
+  selectItemSelector,
+  tagFilterAtom,
+  itemIdsAtom,
+  GlobalContext,
+  setGlobalContext
+} from "../entity";
 
 const styles = (theme: Theme) =>  createStyles({
   form: {
@@ -87,22 +97,22 @@ const styles = (theme: Theme) =>  createStyles({
 
 });
 
-const userSetting: UserSetting = Setting.load(UserSetting);
-
 interface IProps extends WithStyles<typeof styles>, RouteComponentProps {}
 
 const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
-  const setTree = useSetRecoilState(treeStateAtom);
 
+  const userSetting = Setting.load(UserSetting);
+
+  const setItemIds = useSetRecoilState(itemIdsAtom);
   const [isShowPassword, toggleShowPassword] = useState(false);
   const [password, setPassword] = useState('');
-  const [selectedFileName, setFileName] = useState<string | undefined>(undefined);
+  const [selectedFileName, setFileName] = useState<string | undefined>(userSetting.recentFiles[0]);
   const [error, setError] = useState('');
   const clearState = useRecoilCallback(({set}) => () => {
     set(colorFilterAtom, {color:''});
     set(tagFilterAtom, []);
     set(searchFilterAtom, '');
-    set(selectItemSelector, currentContext.allItemsGroupUuid);
+    set(selectItemSelector, GlobalContext.allItemsGroupUuid);
     set(isDbSavedSelector, true);
   })
 
@@ -110,12 +120,13 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
   const [_, forceUpdate] = useReducer(x => x + 1, 0);
   ///END TMP
 
-
   const handleOpenFile = () => {
     const file = remote.dialog.showOpenDialogSync({properties: ['openFile']});
     setPassword('');
     setError('');
     setFileName(file ? file[0] : undefined);
+    if (file)
+      setInputFocus();
   }
 
   const handleFileRemove = (event: React.MouseEvent<HTMLButtonElement>, file: string) => {
@@ -136,6 +147,7 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
     setFileName(selectedFile);
     setError('');
     setPassword('');
+    setInputFocus();
   }
 
   const handleKeyPress = (event: React.KeyboardEvent<HTMLFormElement>) => {
@@ -146,10 +158,13 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
   }
 
   const handleEnterPassword = async () => {
+
     if (selectedFileName) {
       try {
         clearState();
-        setTree(await currentContext.LoadContextFromFile(selectedFileName, ProtectedValue.fromString(password)));
+        const gc = await GlobalContext.LoadContext(selectedFileName, ProtectedValue.fromString(password));
+        setGlobalContext(gc);
+        setItemIds(currentContext().allItemIds);
         updateRecentFiles(selectedFileName);
 
         history.push("/app");
@@ -162,6 +177,17 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
       }
     }
   }
+
+  const useFocus = () => {
+    const htmlElRef = useRef<HTMLElement | null>(null)
+    const setFocus = () => {
+      htmlElRef.current &&  htmlElRef.current.focus()
+    }
+
+    return [ htmlElRef, setFocus ] as const
+  }
+
+  const [inputRef, setInputFocus] = useFocus();
 
   return(
     <>
@@ -180,7 +206,9 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
           <div className = {classes.inputRow}>
             <TextField
               id = "password"
+              inputRef = {inputRef}
               fullWidth
+              autoFocus
               disabled = {!selectedFileName}
               label = {selectedFileName && "Password for " + path.parse(selectedFileName).base}
               error = {!!error}

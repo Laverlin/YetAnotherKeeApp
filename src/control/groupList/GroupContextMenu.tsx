@@ -2,7 +2,7 @@ import { Divider, ListItemIcon, Menu, MenuItem} from '@material-ui/core';
 import assert from 'assert';
 import React, { FC } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { DefaultKeeIcon, closeItemContextMenu, groupContextMenuAtom, SystemIcon, treeStateUpdateSelector, currentContext, selectItemSelector } from '../../entity';
+import { DefaultKeeIcon, closeItemContextMenu, groupContextMenuAtom, SystemIcon, itemIdsUpdateSelector, currentContext, selectItemSelector } from '../../entity';
 
 
 import { SvgPath } from '../common';
@@ -13,7 +13,7 @@ export const GroupContextMenu: FC = () => {
   // Global state
   //
   const [contextMenu, setContextMenuState] = useRecoilState(groupContextMenuAtom);
-  const setTreeState = useSetRecoilState(treeStateUpdateSelector);
+  const setIdsState = useSetRecoilState(itemIdsUpdateSelector);
   const setSelectedItem = useSetRecoilState(selectItemSelector);
 
   // Handlers
@@ -21,24 +21,22 @@ export const GroupContextMenu: FC = () => {
   const handleCreateItem = (isGroup: boolean) => {
     assert(contextMenu.entry);
     setContextMenuState(closeItemContextMenu);
-    const newItem = currentContext.createItem(contextMenu.entry.uuid, isGroup, 'New Group');
-    setTreeState(newItem);
-    setSelectedItem(newItem.item.uuid);
+    const newItemUuid = currentContext().createItem(contextMenu.entry.uuid, isGroup, 'New Group');
+    setIdsState(newItemUuid);
+    setSelectedItem(newItemUuid);
   }
 
   const changeGroupOrder = (isUp: boolean) => {
     assert(contextMenu.entry);
     setContextMenuState(closeItemContextMenu);
-    const shiftedEntry = contextMenu.entry.shiftGroup(isUp);
-    if (shiftedEntry)
-      setTreeState(shiftedEntry);
+    setIdsState(contextMenu.entry.shiftGroup(isUp));
   }
 
   const handleDeleteGroup = () => {
     assert(contextMenu.entry);
     setContextMenuState(closeItemContextMenu);
-    //setSelectedItem(contextMenu.entry.parent);
-    setTreeState(contextMenu.entry.deleteItem());
+    setSelectedItem(contextMenu.entry.parentUuid);
+    setIdsState(contextMenu.entry.deleteItem());
   }
 
   return (

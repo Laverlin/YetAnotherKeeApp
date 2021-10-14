@@ -2,6 +2,7 @@ import React, { FC } from "react";
 import {
   createMuiTheme,
   createStyles,
+  IconButton,
   InputAdornment,
   MuiThemeProvider,
   OutlinedInput,
@@ -70,7 +71,12 @@ const SearchBox: FC<IProps> = ({classes}) => {
         placeholder = "Search"
         endAdornment = {
           <InputAdornment position="end">
-            <SvgPath className = {classes.icon15} path = {SystemIcon.search} />
+            {searchFilter
+              ? <IconButton color = 'inherit' onClick = {() => setSearchFilter('')}>
+                  <SvgPath className = {classes.icon15} path = {SystemIcon.clear} />
+                </IconButton>
+              : <SvgPath className = {classes.icon15} path = {SystemIcon.search} />
+            }
           </InputAdornment>
         }
       />

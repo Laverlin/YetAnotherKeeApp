@@ -45,7 +45,7 @@ interface IProps  extends WithStyles<typeof styles> {
   entry: KdbxItemState;
 }
 
-const ColorChoicePanel: React.FC<IProps> = ({classes, entry}) => {
+const ColorSelectPanel: React.FC<IProps> = ({classes, entry}) => {
 
   const [panelState, setPanelState] = useRecoilState(colorChoisePanelAtom);
   const setEntryState = useSetRecoilState(itemStateAtom(entry.uuid.id));
@@ -89,4 +89,4 @@ const ColorChoicePanel: React.FC<IProps> = ({classes, entry}) => {
   );
 }
 
-export default withStyles(styles, { withTheme: true })(ColorChoicePanel);
+export default withStyles(styles, { withTheme: true })(ColorSelectPanel);

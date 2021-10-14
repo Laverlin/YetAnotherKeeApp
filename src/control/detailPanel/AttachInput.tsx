@@ -119,7 +119,8 @@ const AttachInput: FC<IProps> = ({classes, entry, disabled}) => {
       <div className = {clsx(classes.outlinedContent, classes.ellipsis)}>
         { Array.from(entry.binaries.keys()).map(k =>
             <Tooltip title = {k} key = {k}>
-              <Chip className = {classes.ellipsis}
+              <Chip
+                className = {classes.ellipsis}
                 style = {{margin:'2px'}}
                 variant = "outlined"
                 size = "small"

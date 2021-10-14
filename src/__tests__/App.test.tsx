@@ -10,5 +10,5 @@ describe('MainFrame', () => {
       <SvgPath path = {SystemIcon.allItems}/>
     )).toBeTruthy();
   });
-});import { SystemIcon } from '../entity/GlobalObject';
+});import { SystemIcon } from '../entity/model/const/DefaultKeeIcon';
 
