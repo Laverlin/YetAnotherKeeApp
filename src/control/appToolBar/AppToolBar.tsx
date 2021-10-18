@@ -7,7 +7,7 @@ import {AppBar, Toolbar, IconButton, Typography, Tooltip} from "@material-ui/cor
 import clsx from "clsx";
 
 import {  currentContext, isDbSavedSelector, SystemIcon, openPanel, toolSortMenuAtom } from "../../entity";
-import { SvgPath } from "../common";
+import { Spinner, SvgPath } from "../common";
 import SearchBox from "./SearchBox";
 import SortMenu from "./SortMenu";
 import SettingPanel from "./SettingPanel";
@@ -39,13 +39,15 @@ const styles = (theme: Theme) =>  createStyles({
       "&:hover": {
         backgroundColor: theme.palette.primary.main
       },
+      display:'flex',
     },
 
     buttonDisabled: {
       height: theme.customSize.topBar.height,
       width: theme.customSize.topBar.height,
       borderRadius: 0,
-      color: theme.palette.grey.A200
+      color: theme.palette.grey.A200,
+      display:'flex',
     },
 
     buttonClose: {
@@ -110,6 +112,7 @@ const AppToolBar: FC<IProps> = ({classes}) => {
   // local state
   const [isMaximized, setIsMaximized] = useState(electron.remote.getCurrentWindow().isMaximized());
   const [isSettingPanelOpen, setSettingPanel] = useState(false);
+  const [isSaving, setLoader] = useState(false);
   const dbName = () => { return path.basename(currentContext().filePath) };
 
   // Event handlers
@@ -156,8 +159,10 @@ const AppToolBar: FC<IProps> = ({classes}) => {
   }
 
   const handleSave = async () => {
+    setLoader(true);
     await currentContext().SaveContext();
     setDbSaved(true);
+    setLoader(false);
   }
 
   return(
@@ -174,15 +179,19 @@ const AppToolBar: FC<IProps> = ({classes}) => {
             <div className = {classes.space15}>
               {isDbChanged && <Typography variant='h5'>*</Typography>}
             </div>
-            <Tooltip title = {`Save ${dbName()}`}>
-              <IconButton
-                color = "inherit"
-                className = {clsx(isDbChanged ? classes.button : classes.buttonDisabled)}
-                onClick = {handleSave}
-              >
-                <SvgPath className = {classes.icon20} path = {SystemIcon.save} />
-              </IconButton>
-            </Tooltip>
+            {!isSaving
+              ? <Tooltip title = {`Save ${dbName()}`}>
+                  <IconButton
+                    color = "inherit"
+                    className = {clsx(isDbChanged ? classes.button : classes.buttonDisabled)}
+                    onClick = {handleSave}
+                  >
+                    <SvgPath className = {classes.icon20} path = {SystemIcon.save} />
+                  </IconButton>
+                </Tooltip>
+              : <div className={classes.buttonDisabled}><Spinner size = {28} thickness = {1} color = {'#FFFFFF'} /></div>
+            }
+
             <Tooltip title = {'Open another file'}>
               <IconButton
                 color = "inherit"

@@ -16,7 +16,7 @@ import { SvgPath } from '../common';
 export const EntryContextMenu: FC = () => {
 
   const [contextMenuState, setContextMenuState] = useRecoilState(entryContextMenuAtom);
-  const setMessage = useSetRecoilState(notificationAtom);
+  const setNotification = useSetRecoilState(notificationAtom);
   const setTreeState = useSetRecoilState(itemIdsUpdateSelector);
 
   const handleCopy = (fieldName: keyof typeof DefaultFields, event: React.MouseEvent<Element, MouseEvent>): void => {
@@ -25,7 +25,7 @@ export const EntryContextMenu: FC = () => {
       return;
     setContextMenuState(closeItemContextMenu);
     navigator.clipboard.writeText(contextMenuState.entry.getFieldUnprotected(fieldName));
-    setMessage(`${DefaultFields[fieldName]} is copied`);
+    setNotification(`${DefaultFields[fieldName]} is copied`);
   }
 
   const handleDeleteEntry = () =>  {

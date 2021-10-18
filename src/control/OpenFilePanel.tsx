@@ -29,10 +29,7 @@ import {
   GlobalContext,
   setGlobalContext
 } from "../entity";
-import clsx from 'clsx';
-
-import loadStyles from "./common/spinner.scss";
-
+import { Spinner } from "./common/Spinner";
 
 const styles = (theme: Theme) =>  createStyles({
   form: {
@@ -68,7 +65,7 @@ const styles = (theme: Theme) =>  createStyles({
   enterButton: {
     marginLeft: theme.spacing(1),
     marginTop: -theme.spacing(2),
-    height: '75px'
+    height: '76px'
   },
 
   recentFilesRow: {
@@ -101,7 +98,8 @@ const styles = (theme: Theme) =>  createStyles({
 
   loader: {
     marginLeft: '15px'
-  }
+  },
+
 });
 
 interface IProps extends WithStyles<typeof styles>, RouteComponentProps {}
@@ -253,10 +251,9 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
                 >
                   <SvgPath className = {classes.icon50} path = {SystemIcon.enterKey} />
                 </IconButton>
-              : <div className = {
-                  clsx(loadStyles["spinner"], loadStyles["spinner-1"], classes.enterButton)}
-                />
+              : <div className = {classes.enterButton}> <Spinner /> </div>
             }
+
           </div>
           <div className = {classes.selectedFile}>
             {selectedFileName &&
