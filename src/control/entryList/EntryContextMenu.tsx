@@ -3,13 +3,14 @@ import assert from 'assert';
 import React, { FC } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import {
-  DefaultFields,
+  //DefaultFields,
   DefaultKeeIcon,
   closeItemContextMenu,
   entryContextMenuAtom,
   notificationAtom,
   SystemIcon,
-  itemIdsUpdateSelector
+  itemIdsUpdateSelector,
+  displayFieldName
 } from '../../entity';
 import { SvgPath } from '../common';
 
@@ -19,13 +20,13 @@ export const EntryContextMenu: FC = () => {
   const setNotification = useSetRecoilState(notificationAtom);
   const setTreeState = useSetRecoilState(itemIdsUpdateSelector);
 
-  const handleCopy = (fieldName: keyof typeof DefaultFields, event: React.MouseEvent<Element, MouseEvent>): void => {
+  const handleCopy = (fieldName: string, event: React.MouseEvent<Element, MouseEvent>): void => {
     event.stopPropagation();
     if (!contextMenuState.entry)
       return;
     setContextMenuState(closeItemContextMenu);
     navigator.clipboard.writeText(contextMenuState.entry.getFieldUnprotected(fieldName));
-    setNotification(`${DefaultFields[fieldName]} is copied`);
+    setNotification(`${displayFieldName(fieldName)} is copied`);
   }
 
   const handleDeleteEntry = () =>  {

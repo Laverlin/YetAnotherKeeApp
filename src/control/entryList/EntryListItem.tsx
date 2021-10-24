@@ -3,14 +3,14 @@ import React, { FC } from 'react';
 import { useSetRecoilState, useRecoilValue} from 'recoil';
 import clsx from 'clsx';
 import {
-  DefaultFields,
   DefaultKeeIcon,
   SystemIcon,
   entryContextMenuAtom,
   notificationAtom,
   openItemContextMenu,
   itemStateAtom,
-  selectItemSelector
+  selectItemSelector,
+  displayFieldName
 } from '../../entity';
 import { LightTooltip, SvgPath } from '../common';
 import { KdbxUuid } from 'kdbxweb';
@@ -164,11 +164,11 @@ const EntryListItem: FC<IProps> = ({classes, entryUuid}) => {
   const setNotification = useSetRecoilState(notificationAtom);
   const entry = useRecoilValue(itemStateAtom(entryUuid.id));
 
-  const handleCopy = (fieldName: keyof typeof DefaultFields) => {
+  const handleCopy = (fieldName: string) => {
     const value = entry.getFieldUnprotected(fieldName);
     if (value) {
       navigator.clipboard.writeText(value);
-      setNotification(`${DefaultFields[fieldName]} is copied`);
+      setNotification(`${displayFieldName(fieldName)} is copied`);
     }
     else {
       setNotification(`Nothing to copy`);

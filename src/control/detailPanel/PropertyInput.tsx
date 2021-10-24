@@ -9,7 +9,16 @@ import {
   withStyles,
   WithStyles
 } from '@material-ui/core';
-import { customPropertyMenuAtom, DefaultFields, itemStateAtom, KdbxItemState, notificationAtom, openPanel, passwordPanelAtom, SystemIcon } from '../../entity';
+import {
+  customPropertyMenuAtom,
+  displayFieldName,
+  itemStateAtom,
+  KdbxItemState,
+  notificationAtom,
+  openPanel,
+  passwordPanelAtom,
+  SystemIcon
+} from '../../entity';
 import { SvgPath } from '../common';
 import { ProtectedValue } from 'kdbxweb';
 
@@ -64,10 +73,10 @@ const PropertyInput: React.FC<IProp> =
       setEntryState(entry.setField(fieldId, fieldValue));
     }
 
-    const handleCopy = (fieldId: string) => {
+    const handleCopy = (e: React.MouseEvent, fieldId: string) => {
+      e.stopPropagation();
       navigator.clipboard.writeText(entry.getFieldUnprotected(fieldId));
-      const fieldName = fieldId in DefaultFields ? DefaultFields[(fieldId as keyof typeof DefaultFields)] : fieldId;
-      setNotification(`${fieldName} is copied`);
+      setNotification(`${displayFieldName(fieldId)} is copied`);
     }
 
     // helpers
@@ -110,7 +119,7 @@ const PropertyInput: React.FC<IProp> =
           </div>
           <IconButton
             className = {classes.copyIconButton}
-            onClick={() => handleCopy(fieldId)}
+            onClick={e => handleCopy(e, fieldId)}
             size = "small"
             disabled = {!inputValue}
           >

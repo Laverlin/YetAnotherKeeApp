@@ -4,6 +4,9 @@ import fs from 'fs';
 import { Credentials, CryptoEngine, Kdbx, KdbxCustomIcon, KdbxEntry, KdbxGroup, KdbxUuid, ProtectedValue} from "kdbxweb";
 import { Argon2Type, Argon2Version } from 'kdbxweb/dist/types/crypto/crypto-engine';
 import { KdbxUuidFactory } from '../Extention';
+import { IIconInfo } from '..';
+import { resizeImage } from './ImageTools';
+import { itemIdsAtom } from '../state/ItemStateAtom';
 
 
 /**
@@ -89,30 +92,39 @@ export class GlobalContext {
   /**
    * returns all custom icons
    */
-  get allCustomIcons(): {iconId: string, iconImage: string}[] {
-    return Array
+  async getAllCustomIcons(): Promise<IIconInfo[]> {
+     return Promise.all(Array
       .from(this.database.meta.customIcons)
-      .map(icon => {
+      .map(async icon => {
+        const image = new Image();
+        image.src = 'data:image;base64,' + btoa(String.fromCharCode(...new Uint8Array(icon[1].data)));
+        await image.decode();
+
         return {
-          iconId: icon[0],
-          iconImage: 'data:image;base64,' + btoa(String.fromCharCode(...new Uint8Array(icon[1].data)))
+          id: icon[0],
+          b64image: image.src,
+          size: icon[1].data.byteLength,
+          width: image.width,
+          height: image.height,
         }
-      })
+      }))
   }
 
   /**
    * removes all icons that not used in any items or in items history
    */
   removeUnusedIcons(){
-    this.database.meta.customIcons.forEach((_, id) => {
-      const usedInEntry = this.allItems.findFirstValue<KdbxEntry | KdbxGroup>(entry =>
-        (entry.customIcon?.id === id ||
-        (entry instanceof KdbxEntry && !!entry.history.find(e => e.customIcon?.id === id)))
-      );
-      if (!usedInEntry){
-        this.database.meta.customIcons.delete(id);
-      }
-    })
+    this.database.cleanup({historyRules: false, customIcons: true, binaries: false});
+  }
+
+  removeSelectedIcons(iconIds: string[]) {
+    let itemIds = [];
+    for(let iconId of iconIds) {
+      this.database.meta.customIcons.delete(iconId);
+      itemIds.push(Array.from(this.database.getDefaultGroup().allGroupsAndEntries())
+        .filter(i => i.customIcon?.id === iconId).map(i=>i.uuid))
+    }
+    return itemIds.flat();
   }
 
   /**
@@ -149,6 +161,18 @@ export class GlobalContext {
    */
   setCustomIcon(iconId: string, iconData: KdbxCustomIcon) {
     this.database.meta.customIcons.set(iconId, iconData);
+  }
+
+  /**
+   * reduces the size of selected icons to 64x64
+   * @param icons selected icons
+   */
+  async compressIcons(iconIds: string[]) {
+    for (let iconId of iconIds){
+      let icon = this.database.meta.customIcons.get(iconId);
+      const resizedData = await resizeImage(Buffer.from(icon!.data), 64, 64);
+      this.database.meta.customIcons.set(iconId, {data: resizedData});
+    }
   }
 }
 

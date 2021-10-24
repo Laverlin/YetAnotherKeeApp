@@ -6,9 +6,11 @@ export * from './model/IKdbxItemState'
 export * from './model/AllEntryGroupState'
 export * from './model/KdbxEntryStateReadOnly'
 export * from './model/GroupStatistic'
+export * from './model/ImageTools'
+export * from './model/IIconInfo'
 
 export * from './model/const/SortMenuItems'
-export * from './model/const/DefaultFields'
+export * from './model/const/DisplayFieldName'
 export * from './model/const/DefaultColors'
 export * from './model/const/SystemIcon'
 

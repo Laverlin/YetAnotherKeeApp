@@ -1,4 +1,4 @@
-import React, { useReducer, useRef, useState } from "react";
+import React, { useEffect, useReducer, useRef, useState } from "react";
 import {useSetRecoilState, useRecoilCallback} from 'recoil'
 import { RouteComponentProps, withRouter } from "react-router-dom";
 import { createStyles, WithStyles, withStyles, Theme } from "@material-ui/core/styles";
@@ -123,6 +123,11 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
 
   const [isLoading, setLoading] = useState(false);
 
+  useEffect(()=>{
+    return () => {setLoading(false)}
+  }, []);
+
+
   ///TMP!!
   const [_, forceUpdate] = useReducer(x => x + 1, 0);
   ///END TMP
@@ -177,13 +182,12 @@ const OpenFilePanel: React.FC<IProps> = ({classes, history}) => {
         history.push("/app");
       }
       catch (error) {
-
+        setLoading(false);
         const errorMsg = (error.code === 'InvalidKey')
           ? 'Wrong Password'
           : error.message ? error.message : error;
         setError(errorMsg);
       }
-      setLoading(false);
     }
   }
 

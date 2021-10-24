@@ -8,16 +8,16 @@ export const NotificationPanel: FC = () => {
 
   const [message, setMessage] = useRecoilState(notificationAtom);
 
-  const onClose = () => { setMessage(''); }
+  const handleClose = () => { setMessage('') }
 
   return(
     <Snackbar
       open = {!!message}
       autoHideDuration = {6000}
       anchorOrigin = {{vertical: 'bottom', horizontal: 'right'}}
-      onClose = {() => onClose()}
+      onClose = {handleClose}
     >
-      <Alert onClose = {() => onClose()} severity = "success">
+      <Alert onClose = {handleClose} severity = "info">
         {message}
       </Alert>
     </Snackbar>

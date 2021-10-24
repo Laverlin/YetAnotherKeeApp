@@ -194,7 +194,7 @@ const ItemDetailPanel: FC<IProps> = ({classes}) => {
           onClick = {e => setIconPanel(openPanel(e.currentTarget))}
           disabled = {historyState.isInHistory}
         >
-          {entry.customIcon
+          {entryView.customIcon
             ? <img className = {classes.titleIcon} src={entryView.customIcon} />
             : <SvgPath className = {classes.titleIcon} path = {DefaultKeeIcon.get(entryView.defaultIconId)} />
           }

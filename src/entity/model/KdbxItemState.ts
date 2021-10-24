@@ -124,6 +124,16 @@ export class KdbxItemState implements IKdbxItemState {
     })
   }
 
+  /**
+   * removes custom icon and put back the default one \
+   * do not creates history entry!
+   */
+  dropCustomIcon(): KdbxItemState {
+    let newState = this.setChanged(true);
+    newState._entry.customIcon = undefined;
+    return newState;
+  }
+
   /** returns true if this instance has setted expiration time
    */
   get isExpires(): boolean { return this._entry.times.expires || false }
