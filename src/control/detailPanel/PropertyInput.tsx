@@ -1,3 +1,4 @@
+import {shell} from 'electron'
 import React, { useEffect, useState } from 'react';
 import { useSetRecoilState } from 'recoil';
 import {
@@ -32,6 +33,13 @@ const styles = (theme: Theme) =>  createStyles({
     top:'2px',
     right: '2px'
   },
+
+  urlIconButton: {
+    position:'absolute',
+    top:'28px',
+    right: '2px'
+  },
+
   copyIcon: {
     width: '16px',
     height: '16px'
@@ -77,6 +85,11 @@ const PropertyInput: React.FC<IProp> =
       e.stopPropagation();
       navigator.clipboard.writeText(entry.getFieldUnprotected(fieldId));
       setNotification(`${displayFieldName(fieldId)} is copied`);
+    }
+
+    const handleGoUrl = (e: React.MouseEvent, url: string) => {
+      e.stopPropagation();
+      shell.openExternal(url);
     }
 
     // helpers
@@ -125,6 +138,16 @@ const PropertyInput: React.FC<IProp> =
           >
             <SvgPath path={SystemIcon.copyFile} className = {classes.copyIcon}/>
           </IconButton>
+          {fieldId === 'URL' &&
+            <IconButton
+              className = {classes.urlIconButton}
+              onClick={e => handleGoUrl(e, inputValue)}
+              size = "small"
+              disabled = {!inputValue}
+            >
+              <SvgPath path={SystemIcon.urlLink} className = {classes.copyIcon}/>
+            </IconButton>
+          }
         </InputAdornment>
       )
     }

@@ -3,10 +3,8 @@ import argon2 from 'argon2';
 import fs from 'fs';
 import { Credentials, CryptoEngine, Kdbx, KdbxCustomIcon, KdbxEntry, KdbxGroup, KdbxUuid, ProtectedValue} from "kdbxweb";
 import { Argon2Type, Argon2Version } from 'kdbxweb/dist/types/crypto/crypto-engine';
-import { KdbxUuidFactory } from '../Extention';
-import { IIconInfo } from '..';
-import { resizeImage } from './ImageTools';
-import { itemIdsAtom } from '../state/ItemStateAtom';
+import { IIconInfo, image2Base64, resizeImage } from '..';
+import { KdbxUuidFactory } from '../utils/KdbxUuidFactory';
 
 
 /**
@@ -97,7 +95,7 @@ export class GlobalContext {
       .from(this.database.meta.customIcons)
       .map(async icon => {
         const image = new Image();
-        image.src = 'data:image;base64,' + btoa(String.fromCharCode(...new Uint8Array(icon[1].data)));
+        image.src = image2Base64(icon[1].data);
         await image.decode();
 
         return {
@@ -168,11 +166,25 @@ export class GlobalContext {
    * @param icons selected icons
    */
   async compressIcons(iconIds: string[]) {
+    let itemIds = [];
     for (let iconId of iconIds){
       let icon = this.database.meta.customIcons.get(iconId);
       const resizedData = await resizeImage(Buffer.from(icon!.data), 64, 64);
       this.database.meta.customIcons.set(iconId, {data: resizedData});
+      itemIds.push(Array.from(this.database.getDefaultGroup().allGroupsAndEntries())
+        .filter(i => i.customIcon?.id === iconId).map(i=>i.uuid))
     }
+    return itemIds.flat();
+  }
+
+  get fileSize(): number {
+    var stats = fs.statSync(this.filePath);
+    return stats.size
+  }
+
+  async compressDatabase() {
+    this.database.cleanup({historyRules: false, customIcons: true, binaries: true});
+    await this.SaveContext()
   }
 }
 
@@ -182,6 +194,10 @@ export class GlobalContext {
  */
 export const setGlobalContext = (context: GlobalContext) => {
   globalContext = context;
+}
+
+export const isContextLoaded = () => {
+  return !!globalContext;
 }
 
 /**

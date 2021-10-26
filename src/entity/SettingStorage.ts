@@ -17,6 +17,7 @@ export class Setting {
     let setting = new settingType();
     const userDataPath = (electron.app || electron.remote.app).getPath('userData');
     setting.#filePath = path.join(userDataPath, settingType.name + '.json');
+
     return fs.existsSync(setting.#filePath)
       ? Object.assign(setting, JSON.parse(fs.readFileSync(setting.#filePath, 'utf-8')))
       : setting;
@@ -33,7 +34,6 @@ export class Setting {
 }
 
 export class AppSetting extends Setting {
-
   windowSize = {
     width: 1350,
     height: 800
@@ -41,7 +41,6 @@ export class AppSetting extends Setting {
 }
 
 export class UserSetting extends Setting {
-
   recentFiles: string[] = [];
 }
 

@@ -2,6 +2,7 @@ import assert from "assert";
 import { KdbxBinary, KdbxBinaryWithHash, KdbxEntry, KdbxEntryField, KdbxGroup, KdbxUuid, ProtectedValue } from "kdbxweb";
 import { currentContext, GlobalContext } from './GlobalContext';
 import { IKdbxItemState } from "./IKdbxItemState";
+import { image2Base64 } from "../utils/ImageTools";
 
 /**
  * Simplified and unified work with KdbxEntry & KdbxGroup
@@ -170,10 +171,10 @@ export class KdbxItemState implements IKdbxItemState {
     return this._applyChanges(item => item.customIcon = value)
   }
 
-  get customIcon(): string | undefined {
+  get customIcon(): string {
     const buffer = currentContext().getCustomIcon(this.customIconUuid || new KdbxUuid())?.data;
     return buffer
-      ? 'data:image;base64,' + btoa(String.fromCharCode(...new Uint8Array(buffer)))
+      ? image2Base64(Buffer.from(buffer))
       : '';
   }
 
@@ -259,7 +260,6 @@ export class KdbxItemState implements IKdbxItemState {
       return this;
     return this._applyChanges(entry => (entry as KdbxEntry).binaries.delete(name));
   }
-
 
   clone() {
     let item = new KdbxItemState(this.uuid);

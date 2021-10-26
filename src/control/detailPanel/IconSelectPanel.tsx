@@ -26,20 +26,20 @@ import {
   KdbxItemState,
   itemStateAtom,
   currentContext,
-  resizeImage,
   IIconInfo
 } from '../../entity';
 import { useEffect, useReducer, useState } from 'react';
+import {} from './../../entity/utils/Extention';
 
-let alwaysScroll = scrollBar;
-alwaysScroll['overflow-y'] = 'scroll';
 
 const styles = (theme: Theme) =>  createStyles({
+
+  scrollBar: scrollBar,
+
   root: {
     display: 'flex',
     flexWrap: 'wrap',
     justifyContent: 'space-around',
-    //overflow: 'hidden',
     backgroundColor: theme.palette.background.paper,
     padding: theme.spacing(1),
   },
@@ -47,6 +47,7 @@ const styles = (theme: Theme) =>  createStyles({
   gridList: {
     width: 570,
     height: 450,
+    'overflow-y':'scroll'
   },
 
   customIcon: {
@@ -66,8 +67,6 @@ const styles = (theme: Theme) =>  createStyles({
     padding: 4,
     height: 46
   },
-
-  scrollBar: alwaysScroll,
 
   pushRight: {
     marginLeft:'auto'
@@ -122,8 +121,11 @@ const IconSelectPanel: React.FC<IProps> = ({classes, entry}) => {
   //
   const setEntryState = useSetRecoilState(itemStateAtom(entry.uuid.id));
   const [panelState, setPanelState] = useRecoilState(iconChoisePanelAtom);
-  const dropCustomIcon = useRecoilCallback(({set}) => (itemId:string) => {
+  const dropCustomIcon = useRecoilCallback(({set}) => (itemId: string) => {
     set(itemStateAtom(itemId), cur => cur.dropCustomIcon());
+  })
+  const setItemChanged = useRecoilCallback(({set}) => (itemIds: KdbxUuid[]) => {
+    itemIds.forEach(itemId => set(itemStateAtom(itemId.id), cur => cur.setChanged(true)));
   })
 
   // local state
@@ -156,18 +158,20 @@ const IconSelectPanel: React.FC<IProps> = ({classes, entry}) => {
   }
 
   const handleAddCustomIcon = async () => {
-    const files = remote.dialog.showOpenDialogSync({properties: ['openFile']});
+    const files = remote.dialog.showOpenDialogSync({
+      properties: ['openFile'],
+      filters:[{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'ico'] }]
+    });
     if (!files) {
       return;
     }
+
     const data = fs.readFileSync(files[0]);
-    const blob = await resizeImage(data, 64, 64);
-    if (blob) {
-      let icon: KdbxCustomIcon = {data: blob}
-      const uuid = KdbxUuid.random();
-      currentContext().setCustomIcon(uuid.id, icon);
-      forceUpdate();
+    let icon: KdbxCustomIcon = {
+      data: data,
     }
+    currentContext().setCustomIcon(KdbxUuid.random().id, icon);
+    forceUpdate();
   }
 
   const handleSelectIcon = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -184,7 +188,8 @@ const IconSelectPanel: React.FC<IProps> = ({classes, entry}) => {
   }
 
   const handleCompressSelected = async () => {
-    await currentContext().compressIcons(selectedIcons);
+    const itemIds = await currentContext().compressIcons(selectedIcons);
+    setItemChanged(itemIds);
     setSelectedIcons([]);
     forceUpdate();
   }

@@ -15,7 +15,6 @@ const styles = (theme: Theme) =>  createStyles({
     bottom: 0,
     right: 0,
     paddingTop: theme.spacing(2),
-    overflow: 'hidden',
   },
 
   scrollBar: scrollBar,

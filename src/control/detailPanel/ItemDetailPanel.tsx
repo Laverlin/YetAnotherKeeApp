@@ -1,12 +1,10 @@
 import React, { FC } from "react";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import { ProtectedValue } from "kdbxweb";
-import { DefaultKeeIcon, IKdbxItemState, SystemIcon } from "../../entity";
+import { DefaultKeeIcon, SystemIcon } from "../../entity";
 import { scrollBar, SvgPath } from "../common";
 import clsx from 'clsx';
-
 import Autocomplete from '@material-ui/lab/Autocomplete';
-
 import {
   Chip,
   createStyles,
